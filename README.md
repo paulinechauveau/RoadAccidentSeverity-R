@@ -3,7 +3,6 @@
 The aim of the project is to predict the severity of road accidents based on teh French "Bases de données annuelles des accidents corporels de la circulation routière" available on www.data.gouv.fr.  
   
 Links.
-* www.data.gouv.fr  
 * https://www.data.gouv.fr/fr/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2021/#/resources  
 
 We will use the following datasets:
