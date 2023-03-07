@@ -1,0 +1,275 @@
+---
+title: "RoadAccidentSeverity"
+author: "Alexandre Robin"
+date: "`r Sys.Date()`"
+output: rmdformats::material
+---
+
+```{r setup, echo=False, include=FALSE}
+
+require(dplyr, install.packages('dplyr'))
+require(knitr, install.packages('knitr'))
+require(ggplot2, install.packages('ggplot'))
+require(rmdformats, install.packages('rmdformats'))
+require(tidyr, install.packages('tidyr'))
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Exploratory Data Analysis
+
+```{r cars}
+caract <- read.csv2('../data/carcteristiques-2021.csv', 
+                    header=TRUE,
+                    sep=';')
+
+lieux <- read.csv2('../data/lieux-2021.csv',
+                    header=TRUE, 
+                    sep=";")
+
+vehicules <- read.csv2('../data/vehicules-2021.csv',
+                    header=TRUE, 
+                    sep=";")
+
+usagers <- read.csv2('../data/usagers-2021.csv',
+                    header=TRUE, 
+                    sep=";")
+
+```
+
+```{r}
+set_numericals <- function(data, list_var){
+  require(dplyr, install.packages('dplyr'))
+  list_var <- unlist(list_var)
+  data <- data %>% mutate_at(vars(matches(list_var)), as.integer)
+  return(data)
+}
+
+set_factors <- function(data, list_var){
+  require(dplyr, install.packages('dplyr'))
+  list_var <- unlist(list_var)
+  data <- data %>% mutate_at(vars(matches(list_var)), as.factor)
+  return(data)
+}
+
+set_strings <- function(data, list_var){
+  require(dplyr, install.packages('dplyr'))
+  list_var <- unlist(list_var)
+  data <- data %>% mutate_at(vars(matches(list_var)), as.character)
+  return(data)
+}
+
+set_data <- function(data, var_numericals, var_factors, var_strings){
+  data <- set_numericals(data, var_numericals)
+  data <- set_factors(data, var_factors)
+  data <- set_strings(data, var_strings)
+  return(data)
+}
+
+del_vars <- function(data, vars){
+  vars <- unlist(vars)
+  for(var in vars) {
+    data <-  data[, -which(names(data) == var)]
+  }
+  return(data)
+}
+
+boxplot <- function(data, target, var){
+  ggplot(data, aes(y=data[,target], x=data[,var],colour=data[,var],fill=data[,var]))+
+  geom_boxplot(alpha=0.5, outlier.alpha=0)+geom_jitter(width=0.25)+
+  stat_summary(fun=mean, colour="black", geom="point",shape=18, size=2)+
+  scale_color_discrete(name=var) + scale_fill_discrete(name=var)+
+  labs(x=var, y=target, title = paste(target, "vs", var))
+}
+
+plot_multi_var <- function(train, target, var_quant, var_qual){
+  ggplot(train, aes_string(x = var_quant, y =target, color=var_qual)) +
+  geom_point()+geom_smooth(method = "lm")
+}
+```
+
+
+## Caractéristiques
+
+```{r}
+caract %>% head
+caract %>% str
+caract %>% summary
+```
+
+```{r}
+strings <- list(
+  'Num_Acc'
+)
+factors <- list(
+  'hrmn', # to work
+  'lum',
+  'dep',
+  'com',
+  'agg', 
+  'int', 
+  'atm', 
+  'adr'
+)
+numericals <- list(
+  'jour',
+  'mois', 
+  'lat',
+  'long'
+)
+to_drop <- list(
+  'an' # only 2021
+) 
+
+caract <- set_data(caract, numericals, factors, strings)
+caract <- caract %>% del_vars(to_drop)
+caract %>% str
+caract %>% summary
+```
+
+
+
+## Lieux 
+
+```{r}
+lieux %>% head
+lieux %>% str
+lieux %>% summary
+```
+
+
+```{r}
+to_drop <- list(
+  "v1", 
+  "v2"
+  )
+factors <- list(
+  "catr",
+  "voie",
+  "circ",
+  "nbv",
+  "vosp",
+  "prof",
+  "plan",
+  "surf",
+  "infra",
+  "situ",
+  "vma")
+numericals <- list(
+  "pr",
+  "pr1",
+  "lartpc",
+  "larrout"
+  )
+
+lieux <- set_data(lieux, numericals, factors, strings)
+lieux %>% str
+lieux %>% summary
+```
+
+
+## Véhicules
+
+```{r}
+vehicules %>% head
+vehicules %>% str
+vehicules %>% summary
+```
+
+```{r}
+strings <- c(
+  'Num_Acc'
+)
+factors <- c(
+  'senc',
+  'catv',
+  'obs',
+  'obsm',
+  'choc',
+  'manv',
+  'motor',
+  'occuct' #a regrouper 
+)
+numericals <- c(
+)
+to_drop <- c(
+)
+
+vehicules <- set(vehicules, numericals, factors, strings)
+```
+
+
+## Usagers
+
+```{r}
+usagers %>% head
+usagers %>% str
+usagers %>% summary
+```
+
+```{r}
+strings <- c(
+  'Num_Acc',
+  'id_vehicule',
+  'num_veh'
+)
+factors <- c(
+  'place',
+  'catu',
+  'grav',
+  'sexe',
+  'trajet',
+  'secu1',
+  'secu2',
+  'secu3',
+  'locp',
+  'actp',
+  'etatp'
+)
+numericals <- c(
+  'an_nais'
+)
+to_drop <- c(
+) 
+
+usagers <- set_data(usagers, numericals, factors, strings)
+usagers %>% str
+```
+
+
+## Target
+
+```{r}
+target_name <- 'grav' 
+target <- usagers[,target_name]
+
+data <- usagers
+var <- target_name
+
+g <- ggplot(data, aes(data[,var], colour=data[,var], fill=data[,var])) +
+    geom_bar() +
+    scale_color_discrete(name=var) + scale_fill_discrete(name=var)+
+    labs(x=var)
+print(g)
+
+# g <- ggplot(data, aes(y=data[,target], x=data[,var], colour=data[,var], fill=data[,var])) +
+#   geom_boxplot(alpha=0.5, outlier.alpha=0)+geom_jitter(width=0.25)+
+#   stat_summary(fun=mean, colour="black", geom="point",shape=18, size=3)+
+#   scale_color_discrete(name=var) + scale_fill_discrete(name=var)+
+#   labs(x=var, y=target, title = paste(target, "vs", var))
+# print(g)
+
+# boxplot <- function(data, target, var)
+```
+
+## Data merger
+
+```{r}
+library(dplyr)
+data <- caract %>% merge(vehicules, by='Num_Acc') %>% merge(usagers, by='Num_Acc') %>% merge(lieux, by='Num_Acc')
+data %>% head
+
+# data <- dplyr::reduce(list(caract, vehicules, usagers, lieux), full_join, by='Num_Acc')
+# doesn't work
+```
+
