@@ -10,8 +10,10 @@ output: rmdformats::material
 require(dplyr, install.packages('dplyr'))
 require(knitr, install.packages('knitr'))
 require(ggplot2, install.packages('ggplot'))
+require(naniar, install.packages('naniar'))
 require(rmdformats, install.packages('rmdformats'))
 require(tidyr, install.packages('tidyr'))
+require(visdat, install.packages('visdat'))
 
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -27,13 +29,7 @@ lieux <- read.csv2('../data/lieux-2021.csv',
                     header=TRUE, 
                     sep=";")
 
-vehicules <- read.csv2('../data/vehicules-2021.csv',
-                    header=TRUE, 
-                    sep=";")
 
-usagers <- read.csv2('../data/usagers-2021.csv',
-                    header=TRUE, 
-                    sep=";")
 
 ```
 
@@ -60,9 +56,12 @@ set_strings <- function(data, list_var){
 }
 
 set_data <- function(data, var_numericals, var_factors, var_strings){
-  data <- set_numericals(data, var_numericals)
-  data <- set_factors(data, var_factors)
-  data <- set_strings(data, var_strings)
+  if(length(var_numericals)!=0)
+    data <- set_numericals(data, var_numericals)
+  if(length(var_factors)!=0)
+    data <- set_factors(data, var_factors)
+  if(length(var_strings)!=0)
+    data <- set_strings(data, var_strings)
   return(data)
 }
 
@@ -73,6 +72,23 @@ del_vars <- function(data, vars){
   }
   return(data)
 }
+
+get_missing <- function(df){ 
+  variables <- names(df) 
+  dtypes <- sapply(df, class)
+  count <- sapply(df, length) 
+  unique <- sapply(df, function(x) length(unique(na.omit(x)))) 
+  missing <- sapply(df, function(x) sum(is.na(x))) 
+  missing_prop <- round(missing/count*100, 2) 
+  output <- data.frame(variable=variables, 
+                       dtype=dtypes, 
+                       count=count, 
+                       unique=unique, 
+                       missing=missing, 
+                       missing_prop=missing_prop) 
+  return(output) 
+}
+
 
 boxplot <- function(data, target, var){
   ggplot(data, aes(y=data[,target], x=data[,var],colour=data[,var],fill=data[,var]))+
@@ -92,44 +108,126 @@ plot_multi_var <- function(train, target, var_quant, var_qual){
 ## Caractéristiques
 
 ```{r}
+caract <- read.csv2('../data/carcteristiques-2021.csv', 
+                    header=TRUE,
+                    sep=';')
+```
+
+
+```{r}
 caract %>% head
 caract %>% str
 caract %>% summary
 ```
 
 ```{r}
+caract[caract=="N/A"] <-  NA
+caract %>% mutate(across(-c(long,lat), ~ifelse(.==-1, NA, .)))
+```
+
+```{r}
+caract %>% gg_miss_var()
+caract %>% vis_dat(warn_large_data=FALSE)
+caract %>% vis_miss(warn_large_data=FALSE)
+caract %>% get_missing()
+```
+
+```{r}
 strings <- list(
-  'Num_Acc'
+  'Num_Acc' # keep for join
 )
 factors <- list(
-  'hrmn', # to work
+  'hrmn', # to work - only keep hour - maybe group
   'lum',
   'dep',
-  'com',
   'agg', 
   'int', 
-  'atm', 
-  'adr'
+  'atm'
 )
 numericals <- list(
-  'jour',
-  'mois', 
+  'mois', # to consider seasons
   'lat',
   'long'
 )
 to_drop <- list(
-  'an' # only 2021
+  'adr', # too many mod
+  'com', # too many mod
+  'jour', # not relevant 
+  'an' # only 1 mod
 ) 
 
 caract <- set_data(caract, numericals, factors, strings)
 caract <- caract %>% del_vars(to_drop)
+```
+
+```{r}
+caract %>% head
 caract %>% str
 caract %>% summary
 ```
 
+```{r}
+write.csv2(caract, 'preprocessed_caract.csv')
+```
 
 
 ## Lieux 
+
+```{r}
+lieux[lieux=="N/A"] <-  NA
+lieux[lieux==-1] <-  NA
+```
+
+```{r}
+lieux %>% head
+lieux %>% str
+```
+
+```{r}
+lieux %>% summary
+```
+
+```{r}
+gg_miss_var(lieux)
+vis_dat(lieux, warn_large_data=FALSE)
+vis_miss(lieux, warn_large_data=FALSE)
+get_missing(lieux)
+```
+
+```{r}
+strings <- list(
+  'Num_Acc' # keep for join
+)
+numericals <- list(
+
+)
+factors <- list(
+  "catr",
+  "circ",
+  "nbv",
+  "vosp",
+  "prof",
+  "plan",
+  "surf", # regroup
+  "infra",
+  "situ",
+  "vma")
+to_drop <- list(
+  "larrout", # 95% missing
+  "lartpc", # 99% missing
+  "voie", # irrelevant
+  "pr", # irrelevant
+  "pr1", #irrelevant
+  "v1", # irrelevant
+  "v2" # irrelevant
+  )
+```
+
+```{r}
+lieux <- set_data(lieux, numericals, factors, strings)
+lieux <- lieux %>% del_vars(to_drop)
+get_missing(lieux)
+```
 
 ```{r}
 lieux %>% head
@@ -137,38 +235,24 @@ lieux %>% str
 lieux %>% summary
 ```
 
-
 ```{r}
-to_drop <- list(
-  "v1", 
-  "v2"
-  )
-factors <- list(
-  "catr",
-  "voie",
-  "circ",
-  "nbv",
-  "vosp",
-  "prof",
-  "plan",
-  "surf",
-  "infra",
-  "situ",
-  "vma")
-numericals <- list(
-  "pr",
-  "pr1",
-  "lartpc",
-  "larrout"
-  )
-
-lieux <- set_data(lieux, numericals, factors, strings)
-lieux %>% str
-lieux %>% summary
+write.csv2(lieux, 'preprocessed_lieux.csv')
 ```
 
 
 ## Véhicules
+
+```{r}
+vehicules <- read.csv2('../data/vehicules-2021.csv',
+                    header=TRUE, 
+                    sep=";")
+```
+
+
+```{r}
+vehicules[vehicules=="N/A"] <-  NA
+vehicules[vehicules==-1] <-  NA
+```
 
 ```{r}
 vehicules %>% head
@@ -177,8 +261,22 @@ vehicules %>% summary
 ```
 
 ```{r}
+vehicules %>% gg_miss_var()
+vehicules %>% vis_dat(warn_large_data=FALSE)
+vehicules %>% vis_miss(warn_large_data=FALSE)
+vehicules %>% get_missing()
+```
+
+```{r}
+vehicules$senc %>% table
+vehicules$senc  %>% as.numeric %>% hist
+```
+
+
+```{r}
 strings <- c(
-  'Num_Acc'
+  'Num_Acc', # note that a single accident can involve several vehicles
+  'id_vehicule'
 )
 factors <- c(
   'senc',
@@ -188,18 +286,34 @@ factors <- c(
   'choc',
   'manv',
   'motor',
-  'occuct' #a regrouper 
 )
 numericals <- c(
 )
 to_drop <- c(
+  'num_veh', # irrelevant
+  'occuct' # 99% missing
 )
-
-vehicules <- set(vehicules, numericals, factors, strings)
 ```
 
+```{r}
+vehicules <- set(vehicules, numericals, factors, strings)
+vehicules <- vehicules %>% del_vars(to_drop)
+vehicules %>% get_missing()
+```
+
+```{r}
+vehicules %>% head
+vehicules %>% str
+vehicules %>% summary
+```
 
 ## Usagers
+
+```{r}
+usagers <- read.csv2('../data/usagers-2021.csv',
+                    header=TRUE, 
+                    sep=";")
+```
 
 ```{r}
 usagers %>% head
@@ -208,10 +322,29 @@ usagers %>% summary
 ```
 
 ```{r}
+usagers$actp %>% table
+```
+
+
+```{r}
+usagers <- usagers %>% mutate_all(~ifelse(. == 'N/A', NA, .))
+usagers <- usagers %>% mutate_all(~ifelse(. == '-1', NA, .))
+usagers <- usagers %>% mutate_all(~ifelse(. == -1, NA, .))
+```
+
+
+```{r}
+usagers %>% gg_miss_var()
+usagers %>% vis_dat(warn_large_data=FALSE)
+usagers %>% vis_miss(warn_large_data=FALSE)
+usagers %>% get_missing()
+```
+
+
+```{r}
 strings <- c(
   'Num_Acc',
-  'id_vehicule',
-  'num_veh'
+  'id_vehicule'
 )
 factors <- c(
   'place',
@@ -221,21 +354,30 @@ factors <- c(
   'trajet',
   'secu1',
   'secu2',
-  'secu3',
   'locp',
-  'actp',
-  'etatp'
+  'actp'
 )
 numericals <- c(
   'an_nais'
 )
 to_drop <- c(
+  'secu3', # too many NA, non NAs are note relevant (usagers$secu3 %>% table)
+  'etatp',
+  'num_veh'
 ) 
-
-usagers <- set_data(usagers, numericals, factors, strings)
-usagers %>% str
 ```
 
+```{r}
+usagers <- usagers %>% set_data(numericals, factors, strings)
+usagers <- usagers %>% del_vars(to_drop)
+usagers %>% get_missing()
+```
+
+```{r}
+usagers %>% head
+usagers %>% str
+usagers %>% summary
+```
 
 ## Target
 
