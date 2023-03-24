@@ -6,7 +6,6 @@ output: rmdformats::material
 ---
 
 ```{r setup, echo=False, include=FALSE}
-
 require(dplyr, install.packages('dplyr'))
 require(knitr, install.packages('knitr'))
 require(ggplot2, install.packages('ggplot'))
@@ -19,19 +18,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Exploratory Data Analysis
-
-```{r cars}
-caract <- read.csv2('../data/carcteristiques-2021.csv', 
-                    header=TRUE,
-                    sep=';')
-
-lieux <- read.csv2('../data/lieux-2021.csv',
-                    header=TRUE, 
-                    sep=";")
-
-
-
-```
 
 ```{r}
 set_numericals <- function(data, list_var){
@@ -67,9 +53,7 @@ set_data <- function(data, var_numericals, var_factors, var_strings){
 
 del_vars <- function(data, vars){
   vars <- unlist(vars)
-  for(var in vars) {
-    data <-  data[, -which(names(data) == var)]
-  }
+  data <- data %>% select(-vars)
   return(data)
 }
 
@@ -88,29 +72,30 @@ get_missing <- function(df){
                        missing_prop=missing_prop) 
   return(output) 
 }
-
-
 ```
 
 
 ## Caractéristiques
 
-```{r}
-caract <- read.csv2('../data/carcteristiques-2021.csv', 
-                    header=TRUE,
-                    sep=';')
-```
-
-
-```{r}
-caract %>% head
-caract %>% str
-caract %>% summary
+```{r cars}
+original_caract <- read.csv2(
+  '../data/carcteristiques-2021.csv',
+  header=TRUE,
+  sep=';'
+)
+caract <- original_caract
 ```
 
 ```{r}
-caract[caract=="N/A"] <-  NA
-caract %>% mutate(across(-c(long,lat), ~ifelse(.==-1, NA, .)))
+original_caract %>% head()
+original_caract %>% str()
+original_caract %>% summary()
+```
+
+```{r}
+caract <- caract %>% mutate_all(~ifelse(. == 'N/A', NA, .))
+caract <- caract %>% mutate_all(~ifelse(. == '-1', NA, .))
+caract <- caract %>% mutate(across(-c(long,lat), ~ifelse(.==-1, NA, .)))
 ```
 
 ```{r}
@@ -143,43 +128,59 @@ to_drop <- list(
   'jour', # not relevant 
   'an' # only 1 mod
 ) 
+```
 
-caract <- set_data(caract, numericals, factors, strings)
+```{r}
+caract <- caract %>% set_data(numericals, factors, strings)
 caract <- caract %>% del_vars(to_drop)
+caract %>% get_missing()
 ```
 
 ```{r}
-caract %>% head
-caract %>% str
-caract %>% summary
+caract %>% head()
+caract %>% str()
+caract %>% summary()
 ```
 
 ```{r}
-write.csv2(caract, 'preprocessed_caract.csv')
+caract %>% write.csv2('preprocessed_caract.csv')
 ```
 
 
 ## Lieux 
 
 ```{r}
-lieux[lieux=="N/A"] <-  NA
-lieux[lieux==-1] <-  NA
+original_lieux <- read.csv2(
+  '../data/lieux-2021.csv',
+  header=TRUE, 
+  sep=";"
+)
+lieux <- original_lieux
 ```
 
 ```{r}
-lieux %>% head
-lieux %>% str
+original_lieux %>% head()
+original_lieux %>% str()
+original_lieux %>% summary()
 ```
 
 ```{r}
-lieux %>% summary
+lieux <- lieux %>% mutate_all(~ifelse(. == 'N/A', NA, .))
+lieux <- lieux %>% mutate_all(~ifelse(. == '-1', NA, .))
+lieux <- lieux %>% mutate_all(~ifelse(. == -1, NA, .))
 ```
 
 ```{r}
-gg_miss_var(lieux)
-vis_dat(lieux, warn_large_data=FALSE)
-vis_miss(lieux, warn_large_data=FALSE)
-get_missing(lieux)
+lieux %>% head()
+lieux %>% str()
+lieux %>% summary()
+```
+
+```{r}
+lieux %>% gg_miss_var()
+lieux %>% vis_dat(warn_large_data=FALSE)
+lieux %>% vis_miss(warn_large_data=FALSE)
+lieux %>% get_missing()
 ```
 
 ```{r}
@@ -187,7 +188,6 @@ strings <- list(
   'Num_Acc' # keep for join
 )
 numericals <- list(
-
 )
 factors <- list(
   "catr",
@@ -212,19 +212,19 @@ to_drop <- list(
 ```
 
 ```{r}
-lieux <- set_data(lieux, numericals, factors, strings)
+lieux <- lieux %>% set_data(numericals, factors, strings)
 lieux <- lieux %>% del_vars(to_drop)
-get_missing(lieux)
+lieux %>% get_missing()
 ```
 
 ```{r}
-lieux %>% head
-lieux %>% str
-lieux %>% summary
+lieux %>% head()
+lieux %>% str()
+lieux %>% summary()
 ```
 
 ```{r}
-write.csv2(lieux, 'preprocessed_lieux.csv')
+lieux %>% write.csv2('preprocessed_lieux.csv')
 ```
 
 
@@ -240,9 +240,9 @@ vehicules <- original_vehicules
 ```
 
 ```{r}
-original_vehicules %>% head
-original_vehicules %>% str
-original_vehicules %>% summary
+original_vehicules %>% head()
+original_vehicules %>% str()
+original_vehicules %>% summary()
 ```
 
 ```{r}
@@ -252,9 +252,9 @@ vehicules <- vehicules %>% mutate_all(~ifelse(. == -1, NA, .))
 ```
 
 ```{r}
-vehicules %>% head
-vehicules %>% str
-vehicules %>% summary
+vehicules %>% head()
+vehicules %>% str()
+vehicules %>% summary()
 ```
 
 ```{r}
@@ -282,7 +282,7 @@ numericals <- c(
 )
 to_drop <- c(
   'num_veh', # irrelevant
-  'occuct' # 99% missing
+  'occutc' # 99% missing
 )
 ```
 
@@ -293,28 +293,31 @@ vehicules %>% get_missing()
 ```
 
 ```{r}
-vehicules %>% head
-vehicules %>% str
-vehicules %>% summary
+vehicules %>% head()
+vehicules %>% str()
+vehicules %>% summary()
 ```
 
 ```{r}
-writes.csv2(vehicules, 'preprocessed_vehicules.csv')
+vehicules %>% write.csv2('preprocessed_vehicules.csv')
 ```
 
 
 ## Usagers
 
 ```{r}
-usagers <- read.csv2('../data/usagers-2021.csv',
-                    header=TRUE, 
-                    sep=";")
+original_usagers <- read.csv2(
+  '../data/usagers-2021.csv',
+  header=TRUE, 
+  sep=";"
+)
+usagers <- original_usagers
 ```
 
 ```{r}
-usagers %>% head
-usagers %>% str
-usagers %>% summary
+original_usagers %>% head()
+original_usagers %>% str()
+original_usagers %>% summary()
 ```
 
 ```{r}
@@ -323,6 +326,11 @@ usagers <- usagers %>% mutate_all(~ifelse(. == '-1', NA, .))
 usagers <- usagers %>% mutate_all(~ifelse(. == -1, NA, .))
 ```
 
+```{r}
+usagers %>% head()
+usagers %>% str()
+usagers %>% summary()
+```
 
 ```{r}
 usagers %>% gg_miss_var()
@@ -330,7 +338,6 @@ usagers %>% vis_dat(warn_large_data=FALSE)
 usagers %>% vis_miss(warn_large_data=FALSE)
 usagers %>% get_missing()
 ```
-
 
 ```{r}
 strings <- c(
@@ -365,11 +372,11 @@ usagers %>% get_missing()
 ```
 
 ```{r}
-usagers %>% head
-usagers %>% str
-usagers %>% summary
-```
-```{r}
-write.csv2(usagers, 'preprocessed_usagers.csv')
+usagers %>% head()
+usagers %>% str()
+usagers %>% summary()
 ```
 
+```{r}
+usagers %>% write.csv2('preprocessed_usagers.csv')
+```
