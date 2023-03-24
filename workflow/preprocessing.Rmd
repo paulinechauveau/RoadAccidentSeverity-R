@@ -90,18 +90,6 @@ get_missing <- function(df){
 }
 
 
-boxplot <- function(data, target, var){
-  ggplot(data, aes(y=data[,target], x=data[,var],colour=data[,var],fill=data[,var]))+
-  geom_boxplot(alpha=0.5, outlier.alpha=0)+geom_jitter(width=0.25)+
-  stat_summary(fun=mean, colour="black", geom="point",shape=18, size=2)+
-  scale_color_discrete(name=var) + scale_fill_discrete(name=var)+
-  labs(x=var, y=target, title = paste(target, "vs", var))
-}
-
-plot_multi_var <- function(train, target, var_quant, var_qual){
-  ggplot(train, aes_string(x = var_quant, y =target, color=var_qual)) +
-  geom_point()+geom_smooth(method = "lm")
-}
 ```
 
 
@@ -243,15 +231,24 @@ write.csv2(lieux, 'preprocessed_lieux.csv')
 ## Véhicules
 
 ```{r}
-vehicules <- read.csv2('../data/vehicules-2021.csv',
-                    header=TRUE, 
-                    sep=";")
+original_vehicules <- read.csv2(
+  '../data/vehicules-2021.csv',
+  header=TRUE, 
+  sep=";"
+)
+vehicules <- original_vehicules
 ```
 
+```{r}
+original_vehicules %>% head
+original_vehicules %>% str
+original_vehicules %>% summary
+```
 
 ```{r}
-vehicules[vehicules=="N/A"] <-  NA
-vehicules[vehicules==-1] <-  NA
+vehicules <- vehicules %>% mutate_all(~ifelse(. == 'N/A', NA, .))
+vehicules <- vehicules %>% mutate_all(~ifelse(. == '-1', NA, .))
+vehicules <- vehicules %>% mutate_all(~ifelse(. == -1, NA, .))
 ```
 
 ```{r}
@@ -268,12 +265,6 @@ vehicules %>% get_missing()
 ```
 
 ```{r}
-vehicules$senc %>% table
-vehicules$senc  %>% as.numeric %>% hist
-```
-
-
-```{r}
 strings <- c(
   'Num_Acc', # note that a single accident can involve several vehicles
   'id_vehicule'
@@ -285,7 +276,7 @@ factors <- c(
   'obsm',
   'choc',
   'manv',
-  'motor',
+  'motor'
 )
 numericals <- c(
 )
@@ -296,7 +287,7 @@ to_drop <- c(
 ```
 
 ```{r}
-vehicules <- set(vehicules, numericals, factors, strings)
+vehicules <- vehicules %>% set_data(numericals, factors, strings)
 vehicules <- vehicules %>% del_vars(to_drop)
 vehicules %>% get_missing()
 ```
@@ -306,6 +297,11 @@ vehicules %>% head
 vehicules %>% str
 vehicules %>% summary
 ```
+
+```{r}
+writes.csv2(vehicules, 'preprocessed_vehicules.csv')
+```
+
 
 ## Usagers
 
@@ -320,11 +316,6 @@ usagers %>% head
 usagers %>% str
 usagers %>% summary
 ```
-
-```{r}
-usagers$actp %>% table
-```
-
 
 ```{r}
 usagers <- usagers %>% mutate_all(~ifelse(. == 'N/A', NA, .))
@@ -354,7 +345,6 @@ factors <- c(
   'trajet',
   'secu1',
   'secu2',
-  'locp',
   'actp'
 )
 numericals <- c(
@@ -363,6 +353,7 @@ numericals <- c(
 to_drop <- c(
   'secu3', # too many NA, non NAs are note relevant (usagers$secu3 %>% table)
   'etatp',
+  'locp',
   'num_veh'
 ) 
 ```
@@ -378,40 +369,7 @@ usagers %>% head
 usagers %>% str
 usagers %>% summary
 ```
-
-## Target
-
 ```{r}
-target_name <- 'grav' 
-target <- usagers[,target_name]
-
-data <- usagers
-var <- target_name
-
-g <- ggplot(data, aes(data[,var], colour=data[,var], fill=data[,var])) +
-    geom_bar() +
-    scale_color_discrete(name=var) + scale_fill_discrete(name=var)+
-    labs(x=var)
-print(g)
-
-# g <- ggplot(data, aes(y=data[,target], x=data[,var], colour=data[,var], fill=data[,var])) +
-#   geom_boxplot(alpha=0.5, outlier.alpha=0)+geom_jitter(width=0.25)+
-#   stat_summary(fun=mean, colour="black", geom="point",shape=18, size=3)+
-#   scale_color_discrete(name=var) + scale_fill_discrete(name=var)+
-#   labs(x=var, y=target, title = paste(target, "vs", var))
-# print(g)
-
-# boxplot <- function(data, target, var)
-```
-
-## Data merger
-
-```{r}
-library(dplyr)
-data <- caract %>% merge(vehicules, by='Num_Acc') %>% merge(usagers, by='Num_Acc') %>% merge(lieux, by='Num_Acc')
-data %>% head
-
-# data <- dplyr::reduce(list(caract, vehicules, usagers, lieux), full_join, by='Num_Acc')
-# doesn't work
+write.csv2(usagers, 'preprocessed_usagers.csv')
 ```
 
