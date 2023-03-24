@@ -12,3 +12,6 @@ We will use the following datasets:
 * carcteristiques-2021.csv
 
 We will try to predict the variable: **grav**.
+
+
+Tutorial caret package : https://topepo.github.io/caret/index.html
