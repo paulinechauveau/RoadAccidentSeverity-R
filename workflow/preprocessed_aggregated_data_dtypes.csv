@@ -23,7 +23,7 @@
 "agg";"factor"
 "int";"factor"
 "atm";"factor"
-"col";"integer"
+"col";"factor"
 "lat";"integer"
 "long";"integer"
 "catr";"factor"

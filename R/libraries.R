@@ -1,0 +1,8 @@
+require(dplyr, install.packages('dplyr'))
+require(knitr, install.packages('knitr'))
+require(ggplot2, install.packages('ggplot'))
+require(naniar, install.packages('naniar'))
+require(rmdformats, install.packages('rmdformats'))
+require(sf, install.packages('sf'))
+require(tidyr, install.packages('tidyr'))
+require(visdat, install.packages('visdat'))

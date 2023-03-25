@@ -6,69 +6,53 @@ output: rmdformats::material
 ---
 
 ```{r setup, echo=False, include=FALSE}
-
-require(dplyr, install.packages('dplyr'))
-require(knitr, install.packages('knitr'))
-require(ggplot2, install.packages('ggplot'))
-require(naniar, install.packages('naniar'))
-require(rmdformats, install.packages('rmdformats'))
-require(tidyr, install.packages('tidyr'))
-require(visdat, install.packages('visdat'))
-
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-boxplot <- function(data, target, var){
-  ggplot(data, aes(y=data[,target], x=data[,var],colour=data[,var],fill=data[,var]))+
-  geom_boxplot(alpha=0.5, outlier.alpha=0)+geom_jitter(width=0.25)+
-  stat_summary(fun=mean, colour="black", geom="point",shape=18, size=2)+
-  scale_color_discrete(name=var) + scale_fill_discrete(name=var)+
-  labs(x=var, y=target, title = paste(target, "vs", var))
-}
-
-plot_multi_var <- function(train, target, var_quant, var_qual){
-  ggplot(train, aes_string(x = var_quant, y =target, color=var_qual)) +
-  geom_point()+geom_smooth(method = "lm")
-}
-
-boxplot_mano <- function(df, target, var, both=T){
-    data <- df
-    data[,var] <- data[,var] %>% as.character
-    
-    g <- ggplot(data, aes(data[,var], colour=data[,var], fill=data[,var])) +
-      geom_bar() +
-      scale_color_discrete(name=var) + scale_fill_discrete(name=var)+
-      labs(x=var)
-    print(g)
-    
-    g <- ggplot(data, aes(y=data[,target], x=data[,var], colour=data[,var], fill=data[,var])) +
-      geom_boxplot(alpha=0.5, outlier.alpha=0)+geom_jitter(width=0.25)+
-      stat_summary(fun=mean, colour="black", geom="point",shape=18, size=3)+
-      scale_color_discrete(name=var) + scale_fill_discrete(name=var)+
-      labs(x=var, y=target, title = paste(target, "vs", var))
-    print(g)
-}
-
-hist_and_density <- function(data, var, binwidth=10){
-  ggplot(data, aes(x=data[,var])) +
-    geom_histogram(aes(y=..density..), 
-                   colour=1, 
-                   fill='white',
-                   binwidth=binwidth) +
-    geom_density(alpha=.2, fill="#FF6666") +
-    labs(x=var, title = paste(var, "distribution"))
-  
-}
+source('../R/libraries.R')
+source('../R/preprocessing.R')
+source('../R/eda.R')
 ```
 
 
 # Exploratory Data Analysis
 
 ```{r}
-original_data <- read.csv2('aggregated_data.csv')
-data <- original_data
+data_dtypes <- read.csv2(
+  "preprocessed_aggregated_data_dtypes.csv",
+  header = TRUE,
+  sep = ";"
+)
+original_data <- read.csv2(
+  "preprocessed_aggregated_data.csv",
+  header = TRUE,
+  sep = ";",
+  colClasses = set_dtypes_df(data_dtypes)
+)
 
+data <- original_data
+data %>% dim()
+```
+
+```{r}
+target_name <- 'grav' 
+num_vars <- data %>% select_if(is.integer)
+cat_vars <- data %>% select_if(is.factor) %>% select(-target_name)
+
+data <- data %>% drop_na(target_name)
+data %>% dim()
+```
+
+```{r}
+data %>% head()
+data %>% str()
+data %>% summary()
+```
+
+```{r}
+data %>% get_missing()
+data %>% vis_dat(warn_large_data = FALSE)
 ```
 
 
@@ -76,38 +60,347 @@ data <- original_data
 
 ```{r}
 target_name <- 'grav' 
-target <- usagers[,target_name]
+target <- data[, target_name]
 
-data <- usagers
-var <- target_name
-
-g <- ggplot(data, aes(data[,var], colour=data[,var], fill=data[,var])) +
-    geom_bar() +
-    scale_color_discrete(name=var) + scale_fill_discrete(name=var)+
-    labs(x=var)
-print(g)
-
-# g <- ggplot(data, aes(y=data[,target], x=data[,var], colour=data[,var], fill=data[,var])) +
-#   geom_boxplot(alpha=0.5, outlier.alpha=0)+geom_jitter(width=0.25)+
-#   stat_summary(fun=mean, colour="black", geom="point",shape=18, size=3)+
-#   scale_color_discrete(name=var) + scale_fill_discrete(name=var)+
-#   labs(x=var, y=target, title = paste(target, "vs", var))
-# print(g)
-
-# boxplot <- function(data, target, var)
+num_vars
 ```
 
+```{r}
+data[, target_name] %>% table()
+data %>% get_countplot(target_name)
+```
+
+
+## Categorical variables
+
+#### place
+```{r}
+var_name <- 'place'
+
+data %>% get_countplot(var_name)
+data %>% get_boxplot(target = target_name, var = var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### catu 
+```{r}
+var_name <- 'catu'
+
+data %>% get_countplot(var_name)
+data %>% get_boxplot(target = target_name, var = var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### sexe 
+```{r}
+var_name <- 'sexe'
+
+data %>% get_countplot(var_name)
+data %>% get_boxplot(target = target_name, var = var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### trajet 
+```{r}
+var_name <- 'trajet'
+
+data %>% get_countplot(var_name)
+data %>% get_boxplot(target_name, var_name)
+
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### secu1 
+```{r}
+var_name <- 'secu1'
+
+data %>% get_countplot(var_name)
+data %>% get_boxplot(target_name, var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### secu2 
+```{r}
+var_name <- 'secu2'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### senc 
+```{r}
+var_name <- 'senc'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### catv 
+```{r}
+var_name <- 'catv'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### obs 
+```{r}
+var_name <- 'obs'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### obsm 
+```{r}
+var_name <- 'obsm'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### choc 
+```{r}
+var_name <- 'choc'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### manv 
+```{r}
+var_name <- 'manv'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### motor 
+```{r}
+var_name <- 'motor'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### hrmn 
+```{r}
+var_name <- 'hrmn'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### lum 
+```{r}
+var_name <- 'lum'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### dep 
+```{r}
+var_name <- 'dep'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### agg 
+```{r}
+var_name <- 'agg'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### int 
+```{r}
+var_name <- 'int'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### atm 
+```{r}
+var_name <- 'atm'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### col 
+```{r}
+var_name <- 'col'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### catr 
+```{r}
+var_name <- 'catr'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### circ 
+```{r}
+var_name <- 'circ'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### nbv 
+```{r}
+var_name <- 'nbv'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### vosp 
+```{r}
+var_name <- 'vosp'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### prof 
+```{r}
+var_name <- 'prof'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### plan 
+```{r}
+var_name <- 'plan'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### surf 
+```{r}
+var_name <- 'surf'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### infra 
+```{r}
+var_name <- 'infra'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### situ 
+```{r}
+var_name <- 'situ'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+#### vma 
+```{r}
+var_name <- 'vma'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
 
 ## Numerical variables
 
+#### an_nais
 ```{r}
+var_name <- 'an_nais'
 
+data %>% get_boxplot(target_name, var_name)
+```
+
+```{r}
+data %>% get_hist_and_density('mois', binwidth = 1)
+```
+
+```{r}
+data %>% get_hist_and_density('an_nais')
 ```
 
 
-## Categroical variables
+#### Geography
 
 ```{r}
-
+coordinates <- st_as_sf(data, coords = c("long", "lat"), crs = 4326)
+ggplot(coordinates) + 
+  geom_sf()
 ```
+
+
 
