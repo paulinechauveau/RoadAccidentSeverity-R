@@ -17,7 +17,8 @@ require(visdat, install.packages('visdat'))
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Exploratory Data Analysis
+
+# Preprocessing
 
 ```{r}
 set_numericals <- function(data, list_var){
@@ -71,6 +72,19 @@ get_missing <- function(df){
                        missing=missing, 
                        missing_prop=missing_prop) 
   return(output) 
+}
+
+get_dtypes <- function(df){
+  variables <- names(df) 
+  dtypes <- sapply(df, class)
+  return(data.frame(variable=variables, dtype=dtypes)) 
+}
+
+set_dtypes_df <- function(df){
+  rownames(df) <- df$variable
+  df <- df %>% select(-variable)
+  df <- df %>% t()
+  return(df)
 }
 ```
 
@@ -143,7 +157,10 @@ caract %>% summary()
 ```
 
 ```{r}
-caract %>% write.csv2('preprocessed_caract.csv')
+caract_dtypes <- caract %>% get_dtypes()
+
+caract %>% write.csv2('preprocessed_caract.csv', row.names=FALSE)
+caract_dtypes %>% write.csv2('preprocessed_caract_dtypes.csv', row.names=FALSE)
 ```
 
 
@@ -224,7 +241,10 @@ lieux %>% summary()
 ```
 
 ```{r}
-lieux %>% write.csv2('preprocessed_lieux.csv')
+lieux_dtypes <- lieux %>% get_dtypes()
+
+lieux %>% write.csv2('preprocessed_lieux.csv', row.names=FALSE)
+lieux_dtypes %>% write.csv2('preprocessed_lieux_dtypes.csv', row.names=FALSE)
 ```
 
 
@@ -299,7 +319,10 @@ vehicules %>% summary()
 ```
 
 ```{r}
-vehicules %>% write.csv2('preprocessed_vehicules.csv')
+vehicules_dtypes <- vehicules %>% get_dtypes()
+
+vehicules %>% write.csv2('preprocessed_vehicules.csv', row.names=FALSE)
+vehicules_dtypes %>% write.csv2('preprocessed_vehicules_dtypes.csv', row.names=FALSE)
 ```
 
 
@@ -351,8 +374,7 @@ factors <- c(
   'sexe',
   'trajet',
   'secu1',
-  'secu2',
-  'actp'
+  'secu2'
 )
 numericals <- c(
   'an_nais'
@@ -360,6 +382,7 @@ numericals <- c(
 to_drop <- c(
   'secu3', # too many NA, non NAs are note relevant (usagers$secu3 %>% table)
   'etatp',
+  'actp',
   'locp',
   'num_veh'
 ) 
@@ -378,5 +401,100 @@ usagers %>% summary()
 ```
 
 ```{r}
-usagers %>% write.csv2('preprocessed_usagers.csv')
+usagers_dtypes <- usagers %>% get_dtypes()
+
+usagers %>% write.csv2('preprocessed_usagers.csv', row.names=FALSE)
+usagers_dtypes %>% write.csv2('preprocessed_usagers_dtypes.csv', row.names=FALSE)
 ```
+
+
+## Final dataset
+
+```{r cars}
+# Usagers
+usagers_dtypes <- read.csv2(
+  'preprocessed_usagers_dtypes.csv', 
+  header=TRUE, 
+  sep=';'
+)
+original_usagers <- read.csv2(
+  'preprocessed_usagers.csv', 
+  header=TRUE,
+  sep=';',
+  colClasses=set_dtypes_df(usagers_dtypes)
+)
+
+# Caractéristiques
+caract_dtypes <- read.csv2(
+  'preprocessed_caract_dtypes.csv', 
+  header=TRUE, 
+  sep=';'
+)
+original_caract <- read.csv2(
+  'preprocessed_caract.csv', 
+  header=TRUE,
+  sep=';',
+  colClasses=set_dtypes_df(caract_dtypes)
+)
+
+# Lieux
+lieux_dtypes <- read.csv2(
+  'preprocessed_lieux_dtypes.csv', 
+  header=TRUE, 
+  sep=';'
+)
+original_lieux <- read.csv2(
+  'preprocessed_lieux.csv', 
+  header=TRUE,
+  sep=';',
+  colClasses=set_dtypes_df(lieux_dtypes)
+)
+
+# Véhicules
+veh_dtypes <- read.csv2(
+  'preprocessed_vehicules_dtypes.csv', 
+  header=TRUE, 
+  sep=';'
+)
+original_veh <- read.csv2(
+  'preprocessed_vehicules.csv', 
+  header=TRUE,
+  sep=';',
+  colClasses=set_dtypes_df(veh_dtypes)
+)
+
+usagers <- original_usagers
+caract <- original_caract
+lieux <- original_lieux
+veh <- original_veh
+```
+
+```{r}
+usagers %>% dim
+caract %>% dim 
+lieux %>% dim
+veh %>% dim
+```
+
+```{r}
+agg_data <- usagers %>% 
+  left_join(veh, on='Num_Acc') %>% 
+  left_join(caract, on='Num_Acc') %>% 
+  left_join(lieux, on='Num_Acc')
+
+agg_data %>% dim()
+agg_data %>% colnames()
+```
+
+```{r}
+agg_data %>% str
+agg_data %>% vis_dat(warn_large_data=FALSE)
+```
+
+```{r}
+agg_data_dtypes <- agg_data %>% get_dtypes()
+
+write.csv2(agg_data, 'preprocessed_aggregated_data.csv', row.names=FALSE)
+write.csv2(agg_data_dtypes, 'preprocessed_aggregated_data_dtypes.csv', row.names=FALSE)
+```
+

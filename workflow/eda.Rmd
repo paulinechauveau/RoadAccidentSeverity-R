@@ -31,32 +31,46 @@ plot_multi_var <- function(train, target, var_quant, var_qual){
   ggplot(train, aes_string(x = var_quant, y =target, color=var_qual)) +
   geom_point()+geom_smooth(method = "lm")
 }
+
+boxplot_mano <- function(df, target, var, both=T){
+    data <- df
+    data[,var] <- data[,var] %>% as.character
+    
+    g <- ggplot(data, aes(data[,var], colour=data[,var], fill=data[,var])) +
+      geom_bar() +
+      scale_color_discrete(name=var) + scale_fill_discrete(name=var)+
+      labs(x=var)
+    print(g)
+    
+    g <- ggplot(data, aes(y=data[,target], x=data[,var], colour=data[,var], fill=data[,var])) +
+      geom_boxplot(alpha=0.5, outlier.alpha=0)+geom_jitter(width=0.25)+
+      stat_summary(fun=mean, colour="black", geom="point",shape=18, size=3)+
+      scale_color_discrete(name=var) + scale_fill_discrete(name=var)+
+      labs(x=var, y=target, title = paste(target, "vs", var))
+    print(g)
+}
+
+hist_and_density <- function(data, var, binwidth=10){
+  ggplot(data, aes(x=data[,var])) +
+    geom_histogram(aes(y=..density..), 
+                   colour=1, 
+                   fill='white',
+                   binwidth=binwidth) +
+    geom_density(alpha=.2, fill="#FF6666") +
+    labs(x=var, title = paste(var, "distribution"))
+  
+}
 ```
 
 
 # Exploratory Data Analysis
 
-```{r cars}
-original_caract <- read.csv2(
-  'preprocessed_caract.csv', 
-  header=TRUE,
-  sep=';'
-)
-original_lieux <- read.csv2(
-  'preprocessed_lieux.csv', 
-  header=TRUE,
-  sep=';'
-)
-original_veh <- read_csv2(
-  'preprocessed_veh.csv', 
-  header=TRUE,
-  sep=';'
-)
+```{r}
+original_data <- read.csv2('aggregated_data.csv')
+data <- original_data
 
-caract <- original_caract
-lieux <- original_lieux
-veh <- original_lieux
 ```
+
 
 ## Target
 
@@ -83,14 +97,17 @@ print(g)
 # boxplot <- function(data, target, var)
 ```
 
-## Data merger
+
+## Numerical variables
 
 ```{r}
-library(dplyr)
-data <- caract %>% merge(vehicules, by='Num_Acc') %>% merge(usagers, by='Num_Acc') %>% merge(lieux, by='Num_Acc')
-data %>% head
 
-# data <- dplyr::reduce(list(caract, vehicules, usagers, lieux), full_join, by='Num_Acc')
-# doesn't work
+```
+
+
+## Categroical variables
+
+```{r}
+
 ```
 
