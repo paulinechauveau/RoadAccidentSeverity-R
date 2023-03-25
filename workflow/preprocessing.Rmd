@@ -412,10 +412,10 @@ veh %>% dim
 ```
 
 ```{r}
-agg_data <- usagers %>% 
-  left_join(veh, on='Num_Acc') %>% 
-  left_join(caract, on='Num_Acc') %>% 
-  left_join(lieux, on='Num_Acc')
+agg_data <- usagers %>%
+  left_join(veh, by = c("id_vehicule", 'Num_Acc')) %>%
+  left_join(caract, by = "Num_Acc") %>%
+  left_join(lieux, by = "Num_Acc")
 
 agg_data %>% dim()
 agg_data %>% colnames()
