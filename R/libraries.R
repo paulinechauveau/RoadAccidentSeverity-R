@@ -1,6 +1,7 @@
 require(dplyr, install.packages('dplyr'))
 require(knitr, install.packages('knitr'))
 require(ggplot2, install.packages('ggplot'))
+require(knitr, install.packages('knitr'))
 require(naniar, install.packages('naniar'))
 require(rmdformats, install.packages('rmdformats'))
 require(sf, install.packages('sf'))

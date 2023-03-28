@@ -1,0 +1,1302 @@
+---
+title: "Analyse statistique avec R"
+date: "2023"
+author: 
+ - name: "Université Paris Dauphine - Master 280 ISF Apprentissage"
+ - name: "Pauline Chauveau"
+ - name: "Alexandre Robin"
+output: rmdformats::material
+---
+
+```{r setup, echo=FALSE}
+
+# echo=(TRUE/FALSE) : apparition du code dans le document
+# eval=(TRUE/FALSE) : exécution du code
+# fig.show=('hide') : affichage des graphique
+# include=(TRUE/FALSE) : apparition des output dans le document
+# message=(TRUE/FALSE) : affichage des messages
+# warning=(TRUE/FALSE) : affichage des warning
+
+knitr::opts_chunk$set(message=FALSE, warning=FALSE,
+                      fig.align = 'center')
+
+```
+
+
+# Presentation
+
+
+## Les données
+
+Les donnéees proviennent de la "Base de données annuelles des accidents corporels de la crirculation routière" française pour l'année 2021.
+
+ * www.data.gouv.fr 
+ * https://www.data.gouv.fr/fr/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2021/#/resources
+ 
+Elles sont réparties en 4 datasets distincts:
+
+ * usagers-2021.csv : données sur parties impliquées dans les accidents
+ * vehicules-2021.csv : données sur les véhicules impliqués dans les accidents
+ * lieux-2021.csv : données sur le lieu des accidents
+ * carcteristiques-2021.csv : caractéristiques des accidents
+ 
+
+## Objectif 
+
+L'objectif de ce projet est de faire une prédiction de la variable ```grav``` qui représente la gravité du dommage corporel infligés aux victimes d'accidents de la circulation.
+
+Le projet se divisera en plusierus étapes. D'abord l'aggrégation des données puis leur exploration et enfin leur exploitation.
+
+
+## Bibliographie
+
+Les différents sites et références utilisés dans ce projet.
+
+* Documentation R : https://www.rdocumentation.org/ 
+* Tutoriel caret : https://topepo.github.io/caret/index.html
+
+> **Cette liste n'est pas exhaustive.**
+
+
+# Outils {.tabset .tabset-fade .tabset-pills}
+
+## Librairies
+```{r}
+library(caret)
+library(corrplot)
+library(dplyr)
+library(kableExtra)
+library(knitr)
+library(ggcorrplot)
+library(ggplot2)
+library(knitr)
+library(magrittr)
+library(naniar)
+library(rmdformats)
+library(rpart)
+library(sf)
+library(tidyr)
+library(tidyverse)
+library(visdat)
+```
+
+## Rendu
+```{r}
+render_df <- function(df) {
+  #' Formats dataframe for knitting
+  #' 
+  #' @param df A data.frame
+  
+  df %>% 
+    kable() %>%
+    kable_styling(
+      full_width = TRUE,
+      font_size = 10
+    ) %>% 
+    scroll_box(width = "100%")
+}
+```
+
+
+## Preprocessing
+```{r}
+set_numericals <- function(data, list_var){
+  require(dplyr, install.packages('dplyr'))
+  list_var <- unlist(list_var)
+  data <- data %>% mutate_at(vars(matches(list_var)), as.integer)
+  return(data)
+}
+
+set_factors <- function(data, list_var){
+  require(dplyr, install.packages('dplyr'))
+  list_var <- unlist(list_var)
+  data <- data %>% mutate_at(vars(matches(list_var)), as.factor)
+  return(data)
+}
+
+set_strings <- function(data, list_var){
+  require(dplyr, install.packages('dplyr'))
+  list_var <- unlist(list_var)
+  data <- data %>% mutate_at(vars(matches(list_var)), as.character)
+  return(data)
+}
+
+set_data <- function(data, var_numericals, var_factors, var_strings){
+  if(length(var_numericals)!=0)
+    data <- set_numericals(data, var_numericals)
+  if(length(var_factors)!=0)
+    data <- set_factors(data, var_factors)
+  if(length(var_strings)!=0)
+    data <- set_strings(data, var_strings)
+  return(data)
+}
+
+del_vars <- function(data, vars){
+  vars <- unlist(vars)
+  data <- data %>% select(-vars)
+  return(data)
+}
+
+get_missing <- function(df){ 
+  variables <- names(df) 
+  dtypes <- sapply(df, class)
+  count <- sapply(df, length) 
+  unique <- sapply(df, function(x) length(unique(na.omit(x)))) 
+  missing <- sapply(df, function(x) sum(is.na(x))) 
+  missing_prop <- round(missing/count*100, 2) 
+  output <- data.frame(variable=variables, 
+                       dtype=dtypes, 
+                       count=count, 
+                       unique=unique, 
+                       missing=missing, 
+                       missing_prop=missing_prop) 
+  return(output) 
+}
+
+get_dtypes <- function(df){
+  variables <- names(df) 
+  dtypes <- sapply(df, class)
+  return(data.frame(variable=variables, dtype=dtypes)) 
+}
+
+set_dtypes_df <- function(df){
+  rownames(df) <- df$variable
+  df <- df %>% select(-variable)
+  df <- df %>% t()
+  return(df)
+}
+```
+
+## EDA
+```{r}
+most_common <- function(vect){
+  return(names(sort(table(vect), decreasing=T)[1]))
+}
+
+get_countplot <- function(data, categorical_var) {
+  #' Plots a countplot
+  #'
+  #' @param data A data.frame object
+  #' @param categorical_var A character object, colname of data
+
+  ggplot(
+    data,
+    aes(x = data[, categorical_var], fill = data[, categorical_var])
+  ) +
+    geom_bar() +
+    labs(x = categorical_var, fill = categorical_var)
+}
+
+get_boxplot <- function(data, categorical_var, numerical_var) {
+  #' Plots a boxplot
+  #'
+  #' @param data A data.frame object
+  #' @param categorical_var A character object, colname of data
+  #' @param numerical_var A character object, colname of data
+  
+  ggplot(
+    data,
+    aes(
+      x = data[, categorical_var],
+      y = data[, numerical_var],
+      colour = data[, categorical_var],
+      fill = data[, categorical_var]
+    )
+  ) +
+    geom_boxplot(
+      alpha = 0.5,
+      outlier.alpha = 0
+    ) +
+    geom_jitter(
+      width = 0.25
+    ) +
+    stat_summary(
+      fun = mean,
+      colour = "black",
+      geom = "point",
+      shape = 18,
+      size = 2
+    ) +
+    labs(
+      x = categorical_var, y = numerical_var,
+      colour = categorical_var, fill = categorical_var, 
+      title = paste(categorical_var, "vs", numerical_var)
+    )
+}
+
+get_multivar_plot <- function(data, target, var_quant, var_qual) {
+  #' Multivariate plot
+  #'
+  #' @param data A data.frame object
+  #' @param target A character object, colname of data
+  #' @param var_quant A character object, colname of data
+  #' @param var_qual A character object, colname of data
+  
+  ggplot(
+    data,
+    aes_string(
+      x = var_quant,
+      y = target, color = var_qual
+    )
+  ) +
+    geom_point() +
+    geom_smooth(method = "lm")
+}
+
+get_hist_and_density <- function(data, var, binwidth = 10) {
+  #' Plots histogram and density
+  #'
+  #' @param data A data.frame object
+  #' @param var A character object, colname of data
+  #' @param binwidth
+  
+  ggplot(
+    data,
+    aes(x = data[, var])
+  ) +
+    geom_histogram(
+      aes(y = ..density..),
+      colour = 1,
+      fill = "white",
+      binwidth = binwidth
+    ) +
+    geom_density(alpha = .2, fill = "#FF6666") +
+    labs(x = var, title = paste(var, "distribution"))
+}
+
+plot_cat_vs_cat <- function(data, x, y) {
+  #' Jitterplot
+  #'
+  #' @param data A data.frame object
+  #' @param x A character object, colname of data
+  #' @param y A character object, colname of data
+
+  ggplot(
+    data,
+    aes(
+      x = data[, x],
+      y = data[, y]
+    )
+  ) +
+    geom_jitter(
+      aes(color = data[, x]),
+      width = 0.25
+    ) +
+    labs(
+      x = x, y = y,
+      colour = x, fill = x,
+      title = paste(x, "vs", y)
+    )
+}
+```
+
+
+
+# Preprocessing {.tabset .tabset-fade .tabset-pills}
+
+
+## Caractéristiques {.tabset .tabset-fade .tabset-pills}
+
+### Acquisition {.tabset .tabset-fade .tabset-pills}
+
+```{r cars}
+original_caract <- read.csv2(
+  'carcteristiques-2021.csv',
+  header=TRUE,
+  sep=';'
+)
+caract <- original_caract
+```
+
+#### head
+```{r}
+original_caract %>% head() %>% render_df()
+```
+
+#### str
+```{r}
+original_caract %>% str()
+```
+
+#### summary
+```{r}
+original_caract %>% summary() %>% render_df()
+```
+
+#### missing
+```{r}
+original_caract %>% get_missing() %>% render_df()
+```
+
+#### visual
+
+```{r}
+coordinates <- st_as_sf(original_caract, coords = c("long", "lat"), crs = 4326)
+ggplot(coordinates) + 
+  geom_sf()
+```
+
+
+### Featuring {.tabset .tabset-fade .tabset-pills}
+
+#### Missing
+```{r}
+caract <- caract %>% mutate_all(~ifelse(. == 'N/A', NA, .))
+caract <- caract %>% mutate(across(-c(long,lat), ~ifelse(. == '-1', NA, .)))
+caract <- caract %>% mutate(across(-c(long,lat), ~ifelse(.==-1, NA, .)))
+caract %>% get_missing() %>% render_df()
+```
+
+```{r}
+caract %>% gg_miss_var()
+caract %>% vis_dat(warn_large_data=FALSE)
+caract %>% vis_miss(warn_large_data=FALSE)
+```
+
+#### Engineering
+```{r}
+caract$hh <- as.numeric(substr(caract$hrmn,1,2)) 
+
+caract <- caract %>% 
+  mutate(hh, plage_hh = if_else(hh <= 5, 'nuit',
+                                if_else(hh <= 12, 'matin',
+                                        if_else(hh <= 18 , 'apres-midi',
+                                                if_else(hh <= 22, 'soirée', 'nuit'))))
+         ) %>% 
+  mutate(mois, saison = if_else(mois <= 3, 'hiver',
+                                if_else(mois <= 6, 'printemps',
+                                        if_else(mois <= 9, 'été','automne')))
+         ) %>%
+  mutate(int, inter = if_else(int == 1, 'Hors intersection', 'intersection')) %>% 
+  mutate(atm, meteo = if_else(atm == 1, 'normale', 'risqué')) %>%
+  mutate(col, collision = if_else(col == 7, 'oui', 'non')) %>%
+  mutate(lum, eclairage = if_else(lum %in% c(1,2,5), 'éclairé', 'peu éclairé')) %>%
+  filter( (lat >= 40 & lat <= 55) & (long >= - 6 & long <= 12)) #drop dom tom 
+```
+
+#### Setting
+```{r}
+strings <- list(
+  'Num_Acc' # keep for join
+)
+factors <- list(
+  'plage_hh',
+  'eclairage', # from lum
+  'agg', 
+  'inter',
+  'meteo',
+  'collision',
+  'saison'
+)
+
+numericals <- list(
+  'lat',
+  'long'
+)
+
+to_drop <- list(
+  'adr', # too many mod
+  'com', # too many mod
+  'jour', # not relevant 
+  'an', # only 1 mod
+  'hrmn', # only keep hour
+  'hh', # keep plage_hh instead
+  'mois', # keep saison instead
+  'int', # keep inter instead
+  'dep', # repetitive with lat/long
+  'atm', # keep meteo
+  'lum', 
+  'col' # keep collision
+) 
+
+caract <- caract %>% set_data(numericals, factors, strings)
+caract <- caract %>% del_vars(to_drop)
+```
+
+### Summary {.tabset .tabset-fade .tabset-pills}
+
+#### head
+```{r}
+caract %>% head() %>% render_df()
+```
+
+#### str
+```{r}
+caract %>% str()
+```
+
+#### summary
+```{r}
+caract %>% summary() %>% render_df()
+```
+
+#### missing
+```{r}
+caract %>% get_missing() %>% render_df()
+```
+
+### Saving
+```{r}
+caract_dtypes <- caract %>% get_dtypes()
+
+caract %>% write.csv2('preprocessed_caract.csv', row.names=FALSE)
+caract_dtypes %>% write.csv2('preprocessed_caract_dtypes.csv', row.names=FALSE)
+```
+
+
+## Lieux {.tabset .tabset-fade .tabset-pills}
+
+### Acquisition {.tabset .tabset-fade .tabset-pills}
+
+```{r}
+original_lieux <- read.csv2(
+  'lieux-2021.csv',
+  header=TRUE, 
+  sep=";"
+)
+lieux <- original_lieux
+```
+
+#### head
+```{r}
+original_lieux %>% head() %>% render_df()
+```
+
+#### str
+```{r}
+original_lieux %>% str()
+```
+
+#### summary
+```{r}
+original_lieux %>% summary() %>% render_df()
+```
+
+#### missing
+```{r}
+original_lieux %>% get_missing() %>% render_df()
+```
+
+#### visual
+```{r}
+var_name <- 'nbv'
+
+original_lieux %>% get_countplot(var_name)
+```
+
+### Featuring {.tabset .tabset-fade .tabset-pills}
+
+#### Missing
+```{r}
+lieux <- lieux %>% mutate_all(~ifelse(. == 'N/A', NA, .))
+lieux <- lieux %>% mutate_all(~ifelse(. == '-1', NA, .))
+lieux <- lieux %>% mutate_all(~ifelse(. == -1, NA, .))
+lieux %>% get_missing() %>% render_df()
+```
+
+```{r}
+lieux %>% gg_miss_var()
+lieux %>% vis_dat(warn_large_data=FALSE)
+lieux %>% vis_miss(warn_large_data=FALSE)
+```
+
+#### Engineering
+```{r}
+lieux <- lieux %>%
+  mutate(surf, surf_gr = if_else(surf==1, "normale", "risquée")) %>%
+  mutate(vma = replace(vma, (vma < 10 | vma > 130), NA)) %>%
+  mutate(prof, prof_gr = if_else(prof == 1, 'plat', 'pente/cote')) %>%
+  mutate(plan, plan_gr = if_else(plan ==1 , 'rectiligne', 'courbe')) %>%
+  mutate(infra, infrastructure = if_else(infra == 0, 'non', 'oui'))
+```
+
+#### Setting
+```{r}
+strings <- list(
+  'Num_Acc' # keep for join
+)
+numericals <- list(
+  "nbv", #histogram ok pour le considerer en num
+  "vma"
+)
+factors <- list(
+  "circ",
+  "prof_gr", 
+  "plan_gr",
+  "surf_gr",
+  "infrastructure"
+)
+to_drop <- list(
+  "larrout", # 95% missing
+  "lartpc", # 99% missing
+  "voie", # irrelevant
+  "pr", # irrelevant
+  "pr1", #irrelevant
+  "v1", # irrelevant
+  "v2", # irrelevant
+  "surf", #surf_gr instead
+  "catr",
+  "vosp",
+  "prof",
+  "plan",
+  "infra",
+  "situ"
+  )
+
+lieux <- lieux %>% set_data(numericals, factors, strings)
+lieux <- lieux %>% del_vars(to_drop)
+```
+
+### Summary {.tabset .tabset-fade .tabset-pills}
+
+#### head
+```{r}
+lieux %>% head() %>% render_df()
+```
+
+#### str
+```{r}
+lieux %>% str()
+```
+
+#### summary
+```{r}
+lieux %>% summary() %>% render_df()
+```
+
+#### missing
+```{r}
+lieux %>% get_missing() %>% render_df()
+```
+
+### Saving
+```{r}
+lieux_dtypes <- lieux %>% get_dtypes()
+
+lieux %>% write.csv2('preprocessed_lieux.csv', row.names=FALSE)
+lieux_dtypes %>% write.csv2('preprocessed_lieux_dtypes.csv', row.names=FALSE)
+```
+
+
+
+## Vehicules {.tabset .tabset-fade .tabset-pills}
+
+### Acquisition {.tabset .tabset-fade .tabset-pills}
+
+```{r}
+original_vehicules <- read.csv2(
+  'vehicules-2021.csv',
+  header=TRUE, 
+  sep=";"
+)
+vehicules <- original_vehicules
+```
+
+#### head
+```{r}
+original_vehicules %>% head() %>% render_df()
+```
+
+#### str
+```{r}
+original_vehicules %>% str()
+```
+
+#### summary
+```{r}
+original_vehicules %>% summary() %>% render_df()
+```
+
+#### missing
+```{r}
+original_vehicules %>% get_missing() %>% render_df()
+```
+
+#### visual
+
+```{r}
+var_name <- 'catv'
+original_vehicules %>% get_countplot(var_name)
+```
+
+### Featuring {.tabset .tabset-fade .tabset-pills}
+
+#### Missing
+```{r}
+vehicules <- vehicules %>% mutate_all(~ifelse(. == 'N/A', NA, .))
+vehicules <- vehicules %>% mutate_all(~ifelse(. == '-1', NA, .))
+vehicules <- vehicules %>% mutate_all(~ifelse(. == -1, NA, .))
+vehicules %>% get_missing() %>% render_df()
+```
+
+```{r}
+vehicules %>% gg_miss_var()
+vehicules %>% vis_dat(warn_large_data=FALSE)
+vehicules %>% vis_miss(warn_large_data=FALSE)
+```
+
+#### Engineering
+```{r}
+vehicules <- vehicules %>%
+  mutate(catv,
+    catveh = if_else(catv %in% c(1, 2, 3, 30, 31, 32, 33, 34, 35, 36, 41, 42, 43, 50, 60, 80),
+      "Deux-roues",
+      if_else(catv %in% c(7, 10), "VL/VU",
+        if_else(catv %in% c(13, 14, 15, 37, 38), "PL", "Autres")
+      )
+    )
+  ) %>%
+  mutate(obs, obstacle = if_else(obs != 0, "non", "oui")) %>%
+  mutate(choc, choc_gr = if_else(choc == 0, "aucun",
+    if_else(choc %in% c(1, 2, 3), "avant",
+      if_else(choc %in% c(4, 5, 6), "arriere",
+        if_else(choc %in% c(7, 8), "coté", "multiples")
+      )
+    )
+  ))
+```
+
+#### Setting
+```{r}
+strings <- c(
+  'Num_Acc', # note that a single accident can involve several vehicles
+  'id_vehicule'
+)
+factors <- c(
+  'catveh',
+  'obstacle',
+  'choc_gr'
+)
+numericals <- c(
+)
+to_drop <- c(
+  'num_veh', # irrelevant
+  'occutc', # 99% missing
+  'senc', #irrelevant
+  'catv', #keep catveh instead
+  'motor', # unknown or NA
+  'obs', #keep obstacle
+  'senc',
+  'choc',
+  'manv',
+  'obsm'
+)
+
+vehicules <- vehicules %>% set_data(numericals, factors, strings)
+vehicules <- vehicules %>% del_vars(to_drop)
+```
+
+### Summary {.tabset .tabset-fade .tabset-pills}
+
+#### head
+```{r}
+vehicules %>% head() %>% render_df()
+```
+
+#### str
+```{r}
+vehicules %>% str()
+```
+
+#### summary
+```{r}
+vehicules %>% summary() %>% render_df()
+```
+
+#### missing
+```{r}
+vehicules %>% get_missing() %>% render_df()
+```
+
+### Saving
+```{r}
+vehicules_dtypes <- vehicules %>% get_dtypes()
+
+vehicules %>% write.csv2('preprocessed_vehicules.csv', row.names=FALSE)
+vehicules_dtypes %>% write.csv2('preprocessed_vehicules_dtypes.csv', row.names=FALSE)
+```
+
+
+
+## Usagers {.tabset .tabset-fade .tabset-pills}
+
+### Acquisition {.tabset .tabset-fade .tabset-pills}
+
+```{r}
+original_usagers <- read.csv2(
+  'usagers-2021.csv',
+  header=TRUE, 
+  sep=";"
+)
+usagers <- original_usagers
+```
+
+#### head
+```{r}
+original_usagers %>% head() %>% render_df()
+```
+
+#### str
+```{r}
+original_usagers %>% str()
+```
+
+#### summary
+```{r}
+original_usagers %>% summary() %>% render_df()
+```
+
+#### missing
+```{r}
+original_usagers %>% get_missing() %>% render_df()
+```
+
+#### visual
+
+```{r}
+var_name <- 'place'
+original_usagers %>% get_countplot(var_name)
+```
+
+```{r}
+original_usagers %>% get_hist_and_density('an_nais')
+```
+
+
+### Featuring {.tabset .tabset-fade .tabset-pills}
+
+#### Missing
+```{r}
+usagers <- usagers %>% mutate_all(~ifelse(. == 'N/A', NA, .))
+usagers <- usagers %>% mutate_all(~ifelse(. == '-1', NA, .))
+usagers <- usagers %>% mutate_all(~ifelse(. == -1, NA, .))
+usagers %>% get_missing() %>% render_df()
+```
+
+```{r}
+usagers %>% gg_miss_var()
+usagers %>% vis_dat(warn_large_data=FALSE)
+usagers %>% vis_miss(warn_large_data=FALSE)
+```
+
+#### Engineering
+```{r}
+usagers <- usagers %>% mutate(secu1, secu = if_else(secu1 == 0, 'non', 'oui')) %>%
+                       mutate(secu2, secu_2 = if_else(secu2 == 0, 'non', 'oui'))
+
+usagers <- usagers %>% filter(grav!=-1)
+usagers$id_usager <- as.character(1:nrow(usagers)) # add an index 
+```
+
+#### Setting
+```{r}
+strings <- c(
+  'Num_Acc',
+  'id_vehicule',
+  'id_usager'
+)
+factors <- c(
+  'place', #faire conducteur vs passager 
+  'catu',
+  'grav',
+  'sexe',
+  'secu', 
+  'secu_2'
+)
+numericals <- c(
+  'an_nais'
+)
+to_drop <- c(
+  'secu3', # too many NA, non NAs are note relevant (usagers$secu3 %>% table)
+  'etatp',
+  'actp',
+  'locp',
+  'num_veh',
+  'secu1',
+  'secu2', 
+  'trajet'
+) 
+
+usagers <- usagers %>% set_data(numericals, factors, strings)
+usagers <- usagers %>% del_vars(to_drop)
+```
+
+### Summary {.tabset .tabset-fade .tabset-pills}
+
+#### head
+```{r}
+usagers %>% head() %>% render_df()
+```
+
+#### str
+```{r}
+usagers %>% str()
+```
+
+#### summary
+```{r}
+usagers %>% summary() %>% render_df()
+```
+
+#### missing
+```{r}
+usagers %>% get_missing() %>% render_df()
+```
+
+#### visual
+
+```{r}
+var_name <- 'catu'
+
+usagers %>% get_countplot(var_name)
+```
+
+
+### Saving
+```{r}
+usagers_dtypes <- usagers %>% get_dtypes()
+
+usagers %>% write.csv2('preprocessed_usagers.csv', row.names=FALSE)
+usagers_dtypes %>% write.csv2('preprocessed_usagers_dtypes.csv', row.names=FALSE)
+```
+
+
+
+## Final dataset {.tabset .tabset-fade .tabset-pills}
+
+### Remarque
+
+**Acquisition alternative**
+
+Depuis le début nous avons pris soin de sauvegarder au fur et à mesure les données modifiées pour avoir des checkpoints dans notre projet. Nous pouvons donc choisir de les recharger depuis les fichiers .csv correspondants.
+
+Nous utilisons ici les données en cache.
+
+```{r, eval=FALSE}
+# Usagers
+usagers_dtypes <- read.csv2(
+  'preprocessed_usagers_dtypes.csv',
+  header=TRUE,
+  sep=';'
+)
+original_usagers <- read.csv2(
+  'preprocessed_usagers.csv',
+  header=TRUE,
+  sep=';',
+  colClasses=set_dtypes_df(usagers_dtypes)
+)
+
+# Caractéristiques
+caract_dtypes <- read.csv2(
+  'preprocessed_caract_dtypes.csv',
+  header=TRUE,
+  sep=';'
+)
+original_caract <- read.csv2(
+  'preprocessed_caract.csv',
+  header=TRUE,
+  sep=';',
+  colClasses=set_dtypes_df(caract_dtypes)
+)
+
+# Lieux
+lieux_dtypes <- read.csv2(
+  'preprocessed_lieux_dtypes.csv',
+  header=TRUE,
+  sep=';'
+)
+original_lieux <- read.csv2(
+  'preprocessed_lieux.csv',
+  header=TRUE,
+  sep=';',
+  colClasses=set_dtypes_df(lieux_dtypes)
+)
+
+# Véhicules
+vehicules_dtypes <- read.csv2(
+  'preprocessed_vehicules_dtypes.csv',
+  header=TRUE,
+  sep=';'
+)
+original_vehicules <- read.csv2(
+  'preprocessed_vehicules.csv',
+  header=TRUE,
+  sep=';',
+  colClasses=set_dtypes_df(vehicules_dtypes)
+)
+
+usagers <- original_usagers
+caract <- original_caract
+lieux <- original_lieux
+vehicules <- original_vehicules
+```
+
+### Acquisition {.tabset .tabset-fade .tabset-pills}
+
+**From previously ran dataframes**
+```{r}
+data <- usagers %>% 
+  left_join(vehicules, by=c('Num_Acc','id_vehicule')) %>% 
+  left_join(caract, by='Num_Acc') %>% 
+  left_join(lieux, by='Num_Acc')
+
+data %>% head() %>% render_df()
+```
+
+#### head
+```{r}
+data %>% head() %>% render_df()
+```
+
+#### str
+```{r}
+data %>% str()
+```
+
+#### summary
+```{r}
+data %>% summary() %>% render_df()
+```
+
+#### missing
+```{r}
+data %>% get_missing() %>% arrange(desc(missing_prop)) %>% render_df()
+data %>% gg_miss_var()
+data %>% vis_dat(warn_large_data=FALSE)
+data %>% vis_miss(warn_large_data=FALSE)
+```
+
+#### visual
+```{r}
+target_name <- 'grav' 
+num_vars <- data %>% select_if(is.integer)
+cat_vars <- data %>% select_if(is.factor) %>% select(-target_name)
+```
+
+**Target** 
+
+```{r}
+data[, target_name] %>% table()
+data %>% get_countplot(target_name)
+```
+
+\n
+**Categorical**
+
+```{r}
+var_name <- 'nbv'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+```{r}
+var_name <- 'catveh'
+
+data %>% get_countplot(var_name)
+data %>% plot_cat_vs_cat(target_name, var_name)
+
+data[, c(target_name, var_name)] %>% table()
+```
+
+
+### Saving
+
+```{r}
+data_dtypes <- data %>% get_dtypes()
+
+write.csv2(data, 'preprocessed_data.csv', row.names=FALSE)
+write.csv2(data_dtypes, 'preprocessed_data_dtypes.csv', row.names=FALSE)
+```
+
+
+
+
+
+
+
+
+# Processing {.tabset .tabset-fade .tabset-pills}
+
+### Acquisition
+
+**Acquisition alternative**
+
+```{r, eval=FALSE}
+data_dtypes <- read.csv2(
+  'preprocessed_data_dtypes.csv',
+  header=TRUE,
+  sep=';'
+)
+original_data <- read.csv2(
+  'preprocessed_data.csv',
+  header=TRUE,
+  sep=';',
+  colClasses=set_dtypes_df(data_dtypes)
+)
+
+data <- original_data
+```
+
+## Split 
+
+```{r}
+train <- data %>% dplyr::sample_frac(0.70)
+test  <- dplyr::anti_join(data, train, by = 'id_usager')
+
+train <- subset(train, 
+                select = !(names(train) %in% c('Num_Acc', 'id_vehicule', 'id_usager')))
+test <- subset(test, 
+               select = !(names(test) %in% c('Num_Acc', 'id_vehicule', 'id_usager')))
+```
+
+```{r}
+num_vars <- colnames(select_if(train, is.numeric))
+cat_vars <- colnames(select_if(train, is.factor))
+cat_vars <- cat_vars[cat_vars != "grav"]
+```
+
+## Imputation 
+
+```{r}
+train <- train %>% 
+  mutate_if(is.numeric, ~replace(., is.na(.), median(., na.rm = TRUE))) %>%
+  mutate_if(is.factor, ~replace(., is.na(.), most_common(.)))
+
+test <- test %>% 
+  mutate_if(is.numeric, ~replace(., is.na(.), median(., na.rm = TRUE))) %>%
+  mutate_if(is.factor, ~replace(., is.na(.), most_common(.)))
+```
+
+## Near Zero-Variance
+
+On vérifie que les variables explicatives sont distribuées dans plusieurs modalités. Dans le cas contraire certains modèles (sauf les modèles à base d'arbres) peuvent être instables.
+
+```{r}
+nzv <- nearZeroVar(train, saveMetrics = TRUE)
+nzv %>% arrange(desc(freqRatio)) %>% render_df()
+```
+
+> **Pas de variables avec variance presque nulle (contrairement à avant le preprocessing)**
+
+## Correlation
+
+**Variables numériques**
+```{r}
+correlation <- cor(train[,num_vars], use = "complete.obs")
+correlation %>% data.frame() %>% render_df()
+corrplot(correlation, method ="ellipse", type="upper", order="AOE", tl.col="black", tl.srt=50, tl.cex = 0.6)
+```
+
+> **Pas de fortes correlations entre les variables.**
+
+\n
+
+**Variables catégorielles**
+```{r}
+model.matrix(~0+., data=train[,cat_vars]) %>% 
+  cor(use="pairwise.complete.obs") %>% 
+  ggcorrplot(show.diag=FALSE, type="lower", lab=FALSE, lab_size=0)
+```
+
+> **Dans l'ensemble les variables sont pas très corrélées.**
+
+## Scaling
+
+```{r}
+center_scale <- caret::preProcess(train, method = c("center", "scale"))
+center_scale
+train_scaled <- predict(center_scale, train)
+test_scaled <- predict(center_scale, test)
+```
+
+> **Numerical variables are centered and scaled.**
+
+## Dummy var
+
+```{r}
+dummies <- dummyVars(grav ~ ., data = train_scaled)
+
+train_scaled_dum <- predict(dummies, newdata = train_scaled) %>% 
+  data.frame()
+
+test_scaled_dum <- predict(dummies, newdata = test_scaled) %>% 
+  data.frame()
+
+train_scaled_dum$grav <- train$grav
+test_scaled_dum$grav <- test$grav
+```
+
+> **We create dummy variables for each categorical variables. Except target.**
+
+```{r}
+train_scaled_dum %>% str()
+test_scaled_dum %>% str()
+```
+
+## Saving
+
+```{r}
+train_dtypes <- train_scaled_dum %>% get_dtypes()
+write.csv2(train_scaled_dum, 'train.csv', row.names=FALSE)
+write.csv2(train_dtypes, 'train_dtypes.csv', row.names=FALSE)
+
+test_dtypes <- test_scaled_dum %>% get_dtypes()
+write.csv2(test_scaled_dum, 'test.csv', row.names=FALSE)
+write.csv2(test_dtypes, 'test_dtypes.csv', row.names=FALSE)
+```
+
+
+# Model {.tabset .tabset-fade .tabset-pills}
+
+## Acquisition
+
+```{r}
+train_dtypes <- read.csv2(
+  'train_dtypes.csv',
+  header=TRUE,
+  sep=';'
+)
+original_train <- read.csv2(
+  'train.csv',
+  header=TRUE,
+  sep=';',
+  colClasses=set_dtypes_df(train_dtypes)
+)
+
+test_dtypes <- read.csv2(
+  'test_dtypes.csv',
+  header=TRUE,
+  sep=';'
+)
+original_test <- read.csv2(
+  'test.csv',
+  header=TRUE,
+  sep=';',
+  colClasses=set_dtypes_df(test_dtypes)
+)
+
+train <- original_train
+test <- original_test
+```
+
+
+```{r}
+train %>% get_missing()
+```
+
+
+
+## Modeling {.tabset .tabset-fade .tabset-pills}
+
+```{r}
+fitControl <- trainControl(method = "cv",
+                           number = 10)
+```
+
+### Tree
+
+**Model**
+```{r, cache=TRUE}
+model <- rpart(grav ~ ., data = train)
+
+pred <- predict(model, newdata = test, type = "class")
+confusionMatrix(pred, test$grav)
+```
+
+\n
+**Cross validation**
+```{r cache=TRUE}
+set.seed(2023)
+n_folds <- 10
+
+folds <- createFolds(train$grav, k = n_folds, 
+                     list = TRUE, 
+                     returnTrain = FALSE)
+
+cv_results <- data.frame(accuracy = numeric(n_folds))
+
+for (i in 1:n_folds) {
+  
+  train_fold <- train[-folds[[i]], ]
+  validation_fold <- train[folds[[i]], ]
+  
+  model_fold <- rpart(grav ~ ., data = train_fold)
+  
+  pred_fold <- predict(model_fold, newdata = validation_fold, type = "class")
+  
+  cv_results[i, "accuracy"] <- 
+    sum(pred_fold == validation_fold$grav) / nrow(validation_fold)
+}
+
+print(cv_results)
+cat("Accuracy (mean +/- sd): ", 
+    mean(cv_results$accuracy), 
+    " +/- ", 
+    sd(cv_results$accuracy), 
+    "\n")
+
+confusionMatrix(pred, test$grav)
+```
+
+
+### Random forest
+
+```{r, cache = TRUE}
+set.seed(2023)
+
+rf <- caret::train(grav ~ ., 
+                   data = train,
+                   method = "rf", 
+                   trControl = fitControl,
+                   ntree = 10
+                   )
+rf
+```
+
+```{r}
+varImp(rf)
+```
+
+```{r}
+train_pred <- predict(rf, newdata = train)
+confusionMatrix(train_pred, train$grav)
+
+test_pred <- predict(rf, newdata = test)
+confusionMatrix(test_pred, test$grav)
+```
+
+
+### Linear Discriminant Analysis
+
+```{r}
+set.seed(2023)
+
+lda <- caret::train(grav ~ ., data = train,
+                 method = "lda",
+                 trControl = fitControl,
+                 )
+lda
+```
+
+```{r}
+varImp(lda)
+```
+
+```{r}
+train_pred <- predict(lda, newdata = train)
+confusionMatrix(train_pred, train$grav)
+
+test_pred <- predict(lda, newdata = test)
+confusionMatrix(test_pred, test$grav)
+```
+
+# Conclusion
+
+La nature des données - présence de nombreuse variables catégorielles - nous a mené vers l'utilisation de modèles à base d'arbres et des méthodes de discrimination. Malheureusement ces modèles ne sont pas toujours facilement interprétables contrairement à des modèles plus classiques. Ils permettent en particulier d'avoir des informations sur l'importance des variables explicatives dans la discrimination. 
+
+La variable cible avait peu de représentants dans certaines modalités. Cela a pu entrainer des sous-représentations de ces catégories pendant la prédiction. Notamment la classification par arbre n'a su prédire aucune des variables sous-représentées. 
+
+A l'inverse la Linear Discriminant Analysis a su prédire ces catégories peu représentées.

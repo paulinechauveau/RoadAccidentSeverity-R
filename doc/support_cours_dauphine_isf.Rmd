@@ -1,0 +1,1267 @@
+---
+title: "Programmation R"
+date: "2022/2023"
+author: 
+ - name: "Université Paris Dauphine - Master ISF (280)"
+ - name: "Émeline Pinquier"
+output: rmdformats::material
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Ce cours est écrit et présenté en R. 
+
+# Avant de commencer
+
+## Présentation en 3 mots 
+
+
+![](cv_img.PNG)
+
+```{r cv, echo=FALSE, fig.align="center"}
+# htmltools::img(src="cv_img.PNG",
+#                alt="cv émeline",
+#                width = 500,
+#                height = 700)
+# knitr::include_graphics("cv_img.PNG")
+```
+
+> Me contacter : 
+
+ * emeline.pinquier@hotmail.fr
+ * emeline.pinquier@edf.fr
+
+## Vos attentes {.tabset .tabset-fade .tabset-pills}
+
+### Contenu du cours
+
+<p style="text-align:center;">
+
+```{r cours, echo=FALSE}
+htmltools::img(src="cours_objectifs.PNG", 
+               alt="objectifs", 
+               width = 500, 
+               height = 540)
+```
+
+</p>
+
+### Mode d'évaluation
+
+<p style="text-align:center;">
+
+```{r eval, echo=FALSE}
+htmltools::img(src="type_eval.PNG", 
+               alt="évaluation", 
+               width = 500, 
+               height = 450)
+```
+</p>
+
+Questionnaire sur vos attentes [ici](https://docs.google.com/forms/d/12leVjyo16pAmIJ5VhWu4oMOBymAE-4o8jKp0oHF4_uk/edit?usp=sharing)
+
+## Les sources
+
+* Infogram (site de dataviz)
+* Cours de Claire Utiel - "Initiation au Langage R" 
+* Cours de Programmation Statistique sous R - IUT Paris Descartes - STID (2013-2015)
+* Cours de R de Ewen Gallic (basé sur sa page web)
+* Formation Datalyo - Langage R
+
+Pour les bonus : 
+
+* Super Statisticienne (https://superstatisticienne.fr/r-sur-le-web-le-package-shiny/)
+* Formation Bonnes Pratiques R aux nouveaux arrivants du CSC DS de la DSIN de EDFCo.
+
+# Qu'est ce que R ?
+
+## Détails & Histoire
+
+<p style="text-align:justify;">
+
+Initialement R est une implémentation du langage de programmation S.
+
+* <b>1993</b> : le projet R naît.
+* <b>1997</b> : une vingtaine de personnes portent ce projet et créent le "Comprehensive R Archive Network" (*i.e.* CRAN)
+
+**R est à la fois un logiciel de statistique et un langage de programmation !**
+
+</p>
+
+> R comme logiciel de traitement statistique des données
+
+<p style="text-align:justify;">
+
+Avant tout : il est **gratuit** !! Ce que l'on appelle plus couramment "open-source". Il est également multi-platerfomes. On peut considerer R comme une **boîte à outils mathématiques**.
+<br>
+R fonctionne comme un interpréteur de commandes et n'a **pas de limite de volume** de données. Il dispose d'une bibliothèque très large de fonctions statistiques et propose également de nombreuses fonctionnalités graphiques. Le logiciel R est développé en plusieurs langages : C/C++/Fortran/JAVA.
+</p>
+
+> R comme langage informatique
+
+<p style="text-align:justify;">
+Le langage R est **SIMPLE** à apprendre et à maîtriser. Il s'agit finalement d'un **langage objet**.
+<br>Ce langage est de plus, doté d'une gestion automatique de la mémoire.
+</p>
+
+## Notion de programmation objet
+
+<p style="text-align:justify;">
+
+La programmation orientée objet (POO) est un modèle de programmation informatique. Au lieu d'organiser la conception logicielle autour de fonctions et/ou de logique, la POO l'organise autour de données plus souvent dits "objets".
+<br>Un objet représente un **concept**, une idée. Une métaphore simple à assimiler pour comprendre ce qui se cache derrière un "objet" serait de le considérer comme "toute entité du monde physique" tel un livre ou une voiture ou un meuble. De ce fait, un objet possède donc une structure interne, un comportement et peut intéragir avec ses pairs.
+<br>La POO a pour objectif de représenter ces objets et leurs relations entre eux.
+<br>Si on rapporte ça à notre cas, un objet pourra être une variable (avec son nom, son type, son but) ou une fonction (avec son nom, son type, son but).
+</p>
+
+## R vs RStudio
+
+<p style="text-align:justify;">
+
+R est un langage de programmation utilisé pour le calcul statistique tandis que RStudio utilise le langage R pour développer des programmes statistiques. Dans R, vous pouvez écrire un programme et exécuter le code indépendamment de tout autre programme informatique. RStudio doit être utilisé avec R pour fonctionner correctement. Souvent appelé IDE (environnement de développement intégré), RStudio permet aux utilisateurs de développer et d'éditer des programmes en R en prenant en charge un grand nombre de packages statistiques, des graphiques de meilleure qualité et la possibilité de gérer votre espace de travail (notamment en clic-bouton).
+
+R et RStudio ne sont pas des versions distinctes du même programme et ne peuvent pas être substitués l'un à l'autre. R peut être utilisé sans RStudio, mais RStudio ne peut pas être utilisé sans R.
+</p>
+
+![](R_vs_RStudio.PNG)
+
+## Notion d'environnement {.tabset .tabset-fade .tabset-pills}
+
+<p style="text-align:justify;">
+R est un langage interprété, ce qui veut dire qu'il nécessite un interprète pour exécuter les commandes, mais qu'il n'a pas de phase de compilation. Il existe plusieurs façons de travailler avec R : 
+ 
+ * soit en ligne de commande ![](r_cmd.PNG)
+ * soit directement dans la console (qui est un interprète) 
+ * soit dans une fenêtre de script (recommandé!) ![](r_console-script.PNG)
+
+
+L'avantage de la seconde méthode, c'est que vous pouvez sauvegarder votre code et y accèder facilement pour une utilisation ultérieure et même sur le moment, selon l'éditeur, il existe des raccourcis clavier pour faciliter la vie du codeur.  
+</p>
+
+Comme on suggère de coder à l'aide de script et RStudio, la suite du cours se basera dessus. 
+<br>Les fichiers codés en R ont une extension .R (Les fichiers portant l'extension .RData sont lus par R comme des ensembles d'objets R (tableaux/fonctions ...).)
+<br>L'environnement de travail, aussi dit *workspace* est l'ensemble des objets R créés par l'user et chargés en mémoire.
+<br>Il existe tout un tas de raccourcis quand on code dans un script (et surtout dans RStudio), tels que : 
+
+ * CTRL+S : pour sauvegarder
+ * CTRL+ENTER : pour éditer une ligne/ run. (Dans RStudio, il y a même les boutons directement pour ça)
+
+
+### Découvrir et gérer son environnement 
+
+<p style="text-align:justify;">
+
+> **L'ENVIRONNEMENT**
+
+Dans une fenêtre RStudio, vous aurez par défaut : 
+
+ * Les scripts
+ * La console (Terminal...)
+ * L'environnement (les objets chargés en mémoire)
+ * Et, les fichiers/plots/packages et aide ...
+
+> **LE RÉPERTOIRE DE TRAVAIL**
+
+Le répertoire de travail est le chemin par défaut dans lequel les fichiers sont lus et écrits dans R. Par défaut, le répertoire de travail est le dossier dans lequel R est installé.
+<br>Pour savoir dans quel répertoire de travail courant vous êtes, vous pouvez utiliser la fonction `getwd()`.
+
+<br>Si vous souhaitez changer de répertoire de travail, c'est simple. Il existe 2 façons possibles :
+
+ * soit avec la fonction `setwd()` : *setwd("mon_rep_de_travail")*
+ * soit avec le menu déroulant *File > Change Dir...* (dans R) ou dans *Session* (dans RStudio)
+
+```{r environnement, echo=TRUE}
+getwd()
+# setwd(dir=)
+# getwd()
+```
+
+Pour avoir / savoir/ manipuler des éléments (=objets) d'un environnement R, stockés en mémoire, vous pouvez utiliser différentes fonctions :
+```{r lister_lenv, echo=TRUE}
+ls() # liste les objets d'un env 
+# objets() fait la même chose
+
+rm() # supprime les objets
+# exemple : rm(objet1)
+
+# pour supprimer tous les objets en mémoire ; 
+# rm(list=ls())
+```
+</p>
+
+### Sauvegarder son environnement 
+
+<br>Il est possible de **sauvegarder et charger** un environnement de travail. Ainsi, quand vous relancez R, vous pouvez récupérer tout un tas *d'existant* (tels que des scripts, des fonctions que vous auriez au préalable créées, des packages chargés etc.).
+<br>En effet, à tout moment au cours d'une session R, l'user peut :
+
+ * **Sauvegarder** des éléments, à l'aide de la fonction `save(objet1, objet2, file = "fichier.RData")` (`save.image(file = "fichier.RData") pour les objets couramment en mémoire dansun fichier d'extension .RData)
+ * **Charger** en mémoire, les éléments qui ont été/sont stockés dans un fichier d'extension .RData, à l'aide la fonction : `load(file= "fichier.RData")`
+ * Ces actions peuvent aussi être réalisées, en *clic-bouton*
+
+Généralement, lorsque vous fermez une session, une popup s'affiche pour vous demandez si vous souhaiter sauvegarder une image de votre session. Si l'user accepte, tous les objets en mémoire seront sauvegardés dans un fichier .RData (dans le *répertoire courant de travail*). Pour ce qui est des commandes lancées par l'user, elles seront enregistrées dans un fichier nommé .RHistory (dans le *répertoire courant de travail*). A l'ouverture d'une session, R va automatiquement chercher s'il existe un de ces fichiers. Si tel est le cas, tous les objets seront directment rechargés en mémoire.
+
+# Les aides de R 
+
+## Les packages {.tabset .tabset-fade .tabset-pills}
+
+Les fonctionnalités de R sont regroupées par "paquets", qu'on doit installer et charger pour les utiliser. 
+
+> paquet = bibliothèque = librairie = package = library
+
+### Généralités sur les packages
+
+<p style="text-align:justify;">
+Les fonctions de base de R sont contenues dans un package nommé `{base}`. Ce dernier est chargé automatiquement à l'ouverture de R (en même temps que d'autres).
+<br>Les **packages** sont des "regroupements" de fonctions, accompagnés de fichiers d'aides à la compréhension et à l'utilisation. Ils sont mis à la disposition des utilisateurs. 
+<br>Une **fonction** est une série de commandes qui effectue des tâches prédéfinies.
+<br>Un package est développé par des utilisateurs  sur une version, pas forcément en lien avec la version de R. Vous pouvez donc, créer vous même votre propre package. 
+
+</p>
+
+### Installer et charger un package {.tabset .tabset-fade .tabset-pills}
+
+#### A la mano 
+<p style="text-align:justify;">
+Pour connaître la liste des packages chargés en mémoire à l'ouverture et par défaut, il suffit de taper : 
+
+```{r package_defaut, echo=TRUE}
+getOption("defaultPackages")
+```
+
+Si vous avez besoin d'un package qui n'est pas lancé par défaut à l'ouverture de R, il faudra installer ce package. Pour cela, il suffit de faire appel à la fonction `install.packages()`. 
+
+```{r package_install, echo=TRUE}
+# install.packages('dplyr') 
+```
+Sauf qu'une fois installé, ça ne suffit pas pour faire comprendre à R qu'on en a besoin ! Il faut également le charger en mémoire, pour pouvoir accéder aux fonctions que ce package contient. Pour cela, l'instruction est la suivante : 
+
+```{r package_lib, echo=TRUE}
+# library('dplyr') 
+```
+<br>Si vous êtes dans un projet et que vous avez chargé plusieurs packages mais que vous ne savez plus lesquels, vous pouvez utiliser la fonction `search()`qui va lister les packages en mémoire. Mais aussi : `installed.packages()`
+
+</p>
+#### En clic-souris
+
+![](install_packages.PNG)
+
+#### Les packages 'particuliers'
+
+<p style="text-align:justify;">
+
+Il existe plusieurs manières d'installer un package. Celles montrées jusqu'ici sont des basiques. La plupart des installations de package se font via le CRAN (qu'on s'en rende compte ou non).
+<br>Sinon, vous pouvez aussi : 
+
+ * Télécharger l'archive depuis le CRAN >> Décompresser l'archive >> Déplacer le dossier dans le répertoire : <i>C:\Program Files\R\R-version\library</i>
+ * Préciser dans la fonction l'url de téléchargement : `install.package(nom_package, repos= URL)`
+ * Certains packages ne sont pas dispo sur le CRAN (X raisons), dans ces cas, ils sont souvent mis sur Github. Pour récupérer ces packages, il faudra installer le package `devtools` depuis le CRAN au préalable, puis utiliser la syntaxe suivante : `devtools::install_github("repdelutilisateur/nomPackage")
+ 
+</p>
+## Utilisation de l'aide
+
+<p style="text-align:justify;">
+Avant de rentrer dans le vif du sujet, il faut avoir en tête qu'il existe une aide en ligne **précieuse**.
+
+> Pour connaître le contenu d'un package et toute son aide/ ses exemples : 
+
+```{r aide_packages, echo=TRUE}
+# library(help=dplyr)
+```
+Sinon, avec les boutons et l'IDE (de RStudio)
+
+![](help_package.PNG)
+
+
+> Pour accèder à l'aide de n'importe qu'elle fonction de n'importe quel package.
+
+<br>
+Pour cela, il existe 3 manières différentes :
+```{r aide_g, echo=TRUE}
+# ?log
+# help(log)
+# help("log")
+```
+</p>
+
+
+# Les objets de R
+
+## Généralités sur les objets
+
+R manipule des objets : toutes les fonctions et les opérateurs agissent sur des objets.
+
+<p style="text-align:justify;">
+A l'inverse de Python, R a beaucoup plus de liberté d'écriture et de style de code, même si cela évolue progressivement. Malgré cette liberté d'écriture, il existe tout de même quelques **conventions** qu'il vaut mieux suivre !
+<br>Le nom d'une variable (d'un objet) doit être composé : 
+
+ * de caractères alphanumériques (ou '.' ou '_')
+ * ne doit pas commencer par un chiffre ou contenir un espace (le seul moyen d'avoir un espace dans le nom d'une variable c'est de "l'encapsuler" au travers de guillemets particuliers ` *(alt gr +7)*)
+ * le nom d'un objet est sensible à la casse : X sera différent de x
+ * en dehors de ces convetions, il n'est pas rare de voir des combinaisons différentes de ces pratiques. Un billet de Robin Lovelace explique ces différences. Pour ma part je préfère la syntaxe suivante : `ma_variable`
+ 
+</p>
+
+> **ATENTION:** il est important d'avoir en tête la notion **d'écrasement**.  
+
+
+<br>On va parler par la suite d'**attributs** de l'objet et de **structures**. Les structures les plus communes en R sont : 
+
+* les listes
+* les vecteurs 
+* les facteurs
+* les matrices / data.frame
+* les fonctions
+* les dates
+
+## Expressions vs affectation {.tabset .tabset-fade .tabset-pills}
+
+### Les expressions
+Une **expression** est une commande immédiatement évaluée par R dont le résultat va s'afficher directement à l'écran. 
+```{r expression, echo=TRUE}
+10/4
+29-12
+2:10
+```
+
+Dans un fichier script, les commandes R doivent être séparées soit par un retour-chariot soit par un ";".
+
+```{r expression1, echo=TRUE}
+"Coucou le hello world qui traumatise les étudiants de chaque cours info";6*4
+```
+
+> Quand on écrit une expression, **AUCUN** objet n'est créé en mémoire ! 
+
+### Les affectations
+
+De base, le résultat d'une expression n'est pas enregistré et donc perdu une fois le résultat affiché.
+L'affectation est finalement l'opération qui permet d'affecter une valeur à un objet. On peut la voir comme une création d'objet et donc comme une sauvegarde en mémoire de cet objet (et dans l'environnement).
+ 
+<br>Il y a 4 manières d'effectuer une affectation :
+
+* L'opérateur usuel : "<-", qui est le plus favorisé comparé aux autres car il rend le code plus lisible.
+
+```{r affectation_usuel, echo=TRUE}
+objet1 <- 17-11
+objet1
+```
+
+* L'équivalent de l'usuel pour "les flémmards" :  "="
+```{r affectation_egal, echo=TRUE}
+objet2 = pi
+objet2
+```
+
+* L'outsider : "->"
+```{r affectation_outsider, echo=TRUE}
+10 -> objet3
+objet3
+```
+
+* L'assignement : "assign"
+```{r affectation_assign,  echo=TRUE}
+assign("objet4",11/2)
+objet4
+```
+
+**Petite astuce !**
+<br>Si vous voulez affecter une valeur à un objet et voir de suite cette dernière, en une seule commande, c'est possible : il suffit d'ajouter des ().
+
+```{r affectation_parenthese, echo=TRUE}
+(objet5="La terre vous dit hello")
+```
+
+> **ATTENTION** : si vous donner un nom à votre objet qui existe déjà en mémoire, alors vous écrasez l'ancienne valeur de l'objet! C'est la notion **d'écrasement**. Cela fonctionne pour les objets que vous créez **MAIS AUSSI** à ceux qui pré-existent déjà dans R. 
+
+```{r affectation_ecrasement, echo=TRUE}
+objet5
+objet5 <- "James, James Bond!"
+objet5
+```
+
+**Pour supprimer un objet:**
+<br>Il suffit d'utiliser la fonction `rm()`
+
+```{r suppression, include=FALSE, echo=FALSE}
+# objet4  # cet objet existe, on vient de le créer
+# rm(objet4)
+# objet4 # son affichage provoque donc une error puisqu'on vient de le supprimer.
+```
+
+
+## Les attributs d'un objet
+
+Les objets de R sont caractérisés par :
+
+ * un nom
+ * un mode 
+ * une longueur
+ 
+<br>**Le mode** correspond au type de l'objet, *i.e* sa nature : 
+
+```{r mode, echo=TRUE}
+mode(objet5)
+typeof(objet5)
+```
+
+<br>Il existe 3 pricipaux types d'objet dans R : 
+
+ * numeric   : parmi lesquels on a aussi les *integer* (=entier) / les *doubles*/*real* (=réels).
+ * character : sont des chaînes de caractères qui doivent être placées entre **'** ou **"**
+ * logical   : sont des données de type logique, pouvant prendre que 2 valeurs, à savoir, *TRUE/FALSE*.
+
+
+<br>**La longeur** correspond au nombre d'éléments que l'objet contient.
+```{r longueur, echo=TRUE}
+length(objet5)
+```
+
+
+## Liste
+
+Le plus global des objets : les listes rangent des éléments hétérogènes. Ces éléments peuvent être des listes elles-mêmes, ou tout objet présentés par la suite.
+
+<br>Pour créer une liste, on utilise la fonction `list()`. Pour "oublier" le mode liste, R propose la fonction `unlist()`. Cette dernière retourne un vecteur contenant tous les éléments de la liste. Mais si cette fonction est mal utilisée, elle causera des dégâts dans vos codes : car R convertit les composants dans le mode le plus général (string).
+
+```{r liste, echo=TRUE}
+ma_liste <- list("sec")
+ma_liste        
+```
+
+## Vecteur {.tabset .tabset-fade .tabset-pills}
+
+### Généralités
+
+Le vecteur est la plus élémentaire des structures. Une valeur telle que 4.2 ou "TRUE" est un vecteur à un seul élément. Un vecteur est donc composé d'un ensemble de valeurs qui s'appellent éléments ou composantes/coordonnées. Un vecteur peut être assimilé à une variable.
+
+> Un vecteur est un objet **atomique** : ce qui veut dire que tous ses éléments doivent avoir le même mode.
+
+**ATTENTION** : si on créé un vecteur avec des éléments de mode différents, R les convertira automatiquement dans le même mode. 
+
+ * Numérique+Caractère = Caractère
+ * Numérique+Boolean = Numérique (TRUE=> 1, FALSE =>0)
+ * Boolean+Caractère = Caractère
+
+Pour savoir si un objet est un vecteur, on peut utiliser la fonction `is.vector()`.
+
+```{r vecteur, echo=TRUE}
+(x = pi)
+is.vector(x)
+
+y <- c(10, "Emeline", 3.14)
+is.vector(y)
+is(y)
+(z <- c(TRUE, 4, 3.14, FALSE))
+is(z)
+```
+
+### Créer un vecteur 
+
+Il existe plusieurs fonctions (de base) pour créer un vecteur : 
+
+* la fonction `c()` (c pour combine) permet d'entrer les valeurs directement (peu importe le type des valeurs : numériques / complexes / caractères / boolééenes etc.)
+* la fonction `vector(mode=,length=)` permet de créer un vecteur dont la valeur des éléments dépend du mode passé en argument : 0 / FALSE / " " (selon si numérique/booléen/caractère).
+* les fonctions numeric(), logical(), character() ont le même éffet mais ont pour argument uniquement la longeur de l'objet.
+
+**ATTENTION** : La création d'un vecteur vide est obligatoire pour l'incrémentation de ce dernier (si par ex création d'un nouveau vecteur dans une boucle).
+
+```{r vecteur_creation, echo=TRUE}
+prenom <- vector(mode="character", length =5)
+prenom
+
+prenom2 <- character(5)
+prenom2
+```
+
+### Manipuler un vecteur 
+
+**Connaître** les éléments d'un vecteur : la fonction `names()` permet d'afficher les libéllés d'un vecteur. Notez que vous pourrez utiliser cette fonction pour connaître le nom des colonnes d'un tableau également. Dans le cas d'un vecteur (et même des listes), on parle alors **d'étiquettes**.
+
+```{r vecteur_names, echo=TRUE}
+personne <- c(nom="Robert", prenom ="Simon", deuxieme_prenom= "Roland") #ici les étiquettes sont "nom", "prenom" et "deuxieme_prenom"
+personne
+
+names(personne)
+
+# il est aussi possible d'attribuer un nom aux éléments d'un vecteur APRES sa création :
+
+personne2 <- c("Pinquier", "Emeline", "Marie")
+names(personne2) <- c("nom", "prenom", "deuxieme_prenom")
+personne2
+
+```
+
+**Sélectionner** une partie d'un vecteur (= notion d'indexion). L'opérateur de sélection est le crochet []. Il existe 3 manières de sélection une partie d'un vecteur : 
+
+ * La sélection par des vecteurs d'entier positif : 
+ 
+```{r vecteur_entier, echo=TRUE}
+personne
+personne[c(1,2,4)] # ici on demande les composantes en 1ère, 2ème et 4ème position. Tout en sachant que dans ce vecteur nous n'avons que 3 éléments.
+
+personne[-c(2,3)] # ici on demande à renvoyer toutes les composantes sauf celles en 2ème et 3ème positions.
+```
+
+ * La sélection par des vecteurs logiques : 
+ 
+```{r vecteur_logique, echo=TRUE}
+mesures <- c(cm=10, mm=100, m=1)
+mesures[mesures>9]
+#ici on demande à renvoyer les éléments de mesures supérieurs à 9.
+
+```
+
+ * La sélection par étiquettes :
+
+```{r vecteur_etiquettes, echo=TRUE}
+personne[c("prenom", "deuxieme_prenom")]
+```
+
+## Facteur {.tabset .tabset-fade .tabset-pills}
+
+Les facteurs sont comme des vecteurs. La seule différence étant qu'ils représentent des variables catégorielles. Comme un facteur est comme un vecteur, il est aussi **atomique** : il ne supporte que les modes **numérique** ou **caractère**.
+
+### Créer un facteur
+
+```{r crea_factor, echo=TRUE}
+pays <- factor(c("France", "France", "Chine", "Espagne", "Chine"))
+pays
+```
+
+> **Il est important de définir une variable qualitative comme un facteur et non comme un vecteur car le traitement de ces deux objets n’est pas le même dans R (en termes de temps de calcul/ stockage).**
+
+```{r factor_corr, echo=TRUE}
+personne_fact <- factor(personne)
+```
+
+### Manipuler  un facteur
+
+<p style="text-align:justify;">
+Pour savoir comment un objet va être interprété dans R, vous pouvez utiliser la fonction : 
+
+```{r class_ex, echo=TRUE}
+class(personne_fact)
+class(personne)
+```
+
+<br>Pour connaître les niveaux/éléments d'un facteur :
+```{r class, echo=TRUE}
+levels(personne_fact)
+```
+
+<br>L'avantage de cet objet, c'est que vous pouvez ordonner les modalités à l'intérieur :
+
+```{r ordered, echo=TRUE}
+age <- ordered(c("- de 18","35 et +", "18-25", "25-35", "- de 18", "18-25", "35 et +"), 
+               levels = c("- de 18",  "18-25", "25-35", "35 et +"))
+
+age
+```
+
+</p>
+
+## Matrice & tableaux {.tabset .tabset-fade .tabset-pills}
+
+### Généralités 
+<p style="text-align:justify;">
+
+Les **matrices** peuvent être vues comme des vecteurs avec un attribut **dim**, qui correspond à la dimension. Une matrice est donc un vecteur dont la dim est de longueur 2.
+
+<br>Les **tableaux** sont des matrices dont la dimension dépasse 2. On parle alors d'*array*.
+
+<br> Les matrices comme les tableaux doivent être rempli par un seul et même type.
+<br>Quelques fonctions à avoir en tête : 
+
+ * nrow(*obj*)   : donne le nombre de lignes 
+ * ncol(*obj*)   : donne le nombe de colonnes
+ * dim(*obj*)    : donne un vecteur contenant les dimensions
+
+
+</p>
+### Manipulations 
+
+```{r matrices, echo=TRUE}
+pilule_bleue <- matrix(1:6, ncol = 2, nrow = 3)
+pilule_bleue # se remplit par défaut en colonne
+nrow(pilule_bleue) 
+ncol(pilule_bleue)
+
+# si on veut remplir par lignes :
+neo <- matrix(1:6, ncol = 2, nrow = 3, byrow = T)
+dim(neo)
+```
+
+
+## Data-frame {.tabset .tabset-fade .tabset-pills}
+
+### Généralités
+
+<p style="text-align:justify;">
+Derrière les *dataframe*, on retrouve en bon français les **tableaux de données**. La compréhension de cet objet est indispensable pour les satistiques, bigdata etc.
+<br>Un **dataframe** esst une liste composée d'un ou **PLUSIEURS** vecteurs de même longueur. C'est objet n'est **PAS ATOMIQUE**, il peut donc contenir des vecteurs de mode différents.
+<br>La métaphore la plus simple pour comprendre cet objet est d'imaginer qu'un tableau de données est une matrice dans laquelle les lignes représentent les individus et les colonnes des caractéristiques qui sont propres à ces individus.
+<br>Comme pour les matrices, on peut obtenir pour un *dataframe* : 
+
+ * ses dimensions : avec la fonction `dim()`
+ * son nombre de ligne : avec la fonction `nrow()`
+ * son nombre de colonnes : avec la fonction `ncol()` OU `length()`
+ * le nom de ses colonnes (entêtes) : avec la fonction `names()`
+ 
+</p>
+ 
+### Créer un dataframe
+
+<p style="text-align:justify;">
+Pour créer un *dataframe*, on utilise la fonction `data.frame()`.
+<br>Pour convertir un objet d'un autre mode en *dataframe*, on utilise la fonction `as.data.frame()`
+
+
+```{r crea_dataframe, echo=TRUE}
+details_colors <- data.frame(Hair = c("Black", "Brown", "Red", "Blond"),
+                             Eye  = c("Brown", "Blue", "Green", "Hazel"),
+                             Sex  = c("Male", "Female", "Male", "Female"))
+
+details_colors
+# info : names() permet aussi de renommer une colonne : 
+names(details_colors) <- c("Cheveux", "Yeux", "Sexe")
+details_colors
+
+names(details_colors)[1] <- "Chair"
+details_colors
+```
+
+Ici, on vient de créer un tableau de données nommé details_colors, qui contient la couleur des cheveux, la couleur des yeux, et le sexe d'individu au hasard.
+<br>Pour info, ce jeu de données existe déjà dans R. En effet, en se basant sur le package `datasets` chargé par défaut par R, on détient déjà tout un tas de jeux de données. En l'occurence, l'objet qui contient ces infos dans ce package s'appelle *HairEyeColor*
+
+```{r dataset_dataframe, echo=TRUE}
+# jusqu'ici on utilisait class() mais préférence pour str() :
+class(HairEyeColor)
+str(HairEyeColor)
+HairEyeColor
+
+details_colors_compl <- as.data.frame(HairEyeColor)
+str(details_colors_compl)
+details_colors_compl
+```
+
+Comme toujours, on peut vérifier un objet avec la fonction  `is` :
+
+```{r verif_dataframe, echo=TRUE}
+is.data.frame(details_colors)
+is.data.frame(details_colors_compl)
+```
+
+### Manipuler un dataframe
+
+Comme pour les vecteurs (et les matrices), pour sélectionner une colonne/ une ligne, d'un *dataframe* vous pouvez utiliser les **[]**. Mais vous pouvez également décider d'utiliser le **$** :
+
+```{r dollar_dataframe, echo=TRUE}
+details_colors_compl[,c(1,3)] # on sélectionne la 1ère et la 3ème COLONNE (peut aussi s'écrire details_colors_compl[c(1,3)])
+details_colors_compl[c(1,3),] # on sélectionne la 1ère et la 3ème LIGNE
+
+details_colors_compl$Hair
+```
+
+Vous pouvez obtenir un **résumé** de votre tableau (la distribution de toutes ses colonnes), *i.e* connaître chaque mode, classe, chiffres clés, à l'aide de la fonction `summary()`
+
+```{r summary_dataframe, echo=TRUE}
+summary(details_colors_compl) # pour tout le df 
+
+# fonctionne aussi pour une seule colonne : 
+summary(details_colors_compl$Freq)
+```
+
+Vous pouvez **trier** un *dataframe*. On retrouve la fonction `order()` qui va renvoyer les indices triés d'une variable. 
+
+```{r tri_dataframe, echo=TRUE}
+order(details_colors_compl$Freq, decreasing = TRUE)
+# order peut avoir un autre arg : na.last = T va ranger les données manquantes à la fin du df
+# par défaut order va trier les données de manière croissante
+```
+
+Vous pouvez **dédoublonner** un *dataframe* grâce à la fonction `unique()` qui élimine UNIQUEMENT les doublons parfaits. Vous pouvez également coupler cette fonction avec une autre telle que `length`
+
+```{r unique_dataframe, echo=TRUE}
+length(unique(details_colors_compl$Eye))
+```
+
+Vous pouvez **fusionner** 2 *dataframe* entre eux : la fonction est `merge()`
+
+```{r merge_dataframe, echo=TRUE}
+# nom_objet = merge(objet1, objet2, by = variable, all.x= TRUE, ...)
+# all.x = True --> Left_join
+```
+
+Ou tout simplement, **concaténer** 2 tables entre-elles :
+ 
+ * la fonction `rbind(tab1, tab2)` : (*pour row bind*) agrège **verticalement** les objets (df, vecteurs ou matrices). **Attention** : cette fonction ne s'utilise que si les 2 objets ont exactement le même nombre de variables.
+ * la fonction `rbind.fill(tab1, tab2)` : fait exactement pareil sauf qu'elle rend possible la concaténation entre 2 objets de taille différente
+ * la fonction `cbind(tab1, tab2)` : (*pour column bind*) agrège **horizontalement** les objets.
+ 
+<br>Il existe aussi des fonctions pour faire des **unions**/**intersections**/**anti-jointures**... :
+```{r union_dataframe, echo=TRUE}
+
+ex1 <- data.frame(user = c(1:4), 
+                  name = c("Jonathan", "Hugo", "Younes", "Simon"))
+ex1
+
+ex2 <- data.frame(user = c(1:4), 
+                  name = c("Jonathan", "Hugo", "Alicia", "Pauline"))
+ex2
+
+union(ex1$name, ex2$name) # renvoie tous les noms des 2 objets
+intersect(ex1$name, ex2$name) # renvoie uniquement les noms présents dans les 2 objets
+setdiff(ex1$name, ex2$name) # renvoie uniquement ceux qui sont en différence de l'objet1 p/r à l'objet 2
+setdiff(ex2$name, ex1$name) # renvoie uniquement ceux qui sont en différence de l'objet2 p/r à l'objet 1
+
+```
+
+Vous pouvez **sélectionner & filtrer** votre table, en utilisant les fonctions :
+
+```{r filter_dataframe, echo=TRUE}
+# 
+# # subset(objet, sélection des lignes, sélection des colonnes)
+# man <- details_colors_compl[details_colors_compl$Sex == "Male"]
+# man
+# 
+# femme_blue  <- details_colors_compl[details_colors_compl$Sex == "Female" & Eye =="Blue"]
+# femme_blue
+# 
+# # & = ET
+# # | = OU 
+# # si on voulait les femmes au yeux bleus ou noisette : 
+# femme_2 <- details_colors_compl[details_colors_compl$Sex == "Female" & (Eye =="Blue" | Eye =="Hazel")]
+# femme_2
+
+```
+
+Vous pouvez **ajouter** des nouvelles colonnes, dans votre table : `df$new_var <- expression`
+<br>Vous pouvez **recoder** des modalités : 
+
+```{r recod_dataframe, echo=TRUE}
+table(details_colors_compl$Sex, useNA = "always") #useNA est un arg de la fonction table : vous pouvez ne pas le mettre, en le mettant a always  il affiche cb de modalités sont non renseignées et ce même si vous en avez pas. "ifany" uniquement si vous en avez.
+details_colors_compl$Sex[details_colors_compl$Sex == "Male"] <- 0
+details_colors_compl$Sex[details_colors_compl$Sex == "Female"] <- 1
+table(details_colors_compl$Sex, useNA = "ifany") 
+```
+</p>
+
+## Date {.tabset .tabset-fade .tabset-pills}
+
+### Généralités sur les dates
+
+<p style="text-align:justify;">
+
+On note 2/3 principales classes pour représenter les dates en R : 
+
+ * le format <i>Date</i> : adapté pour les dates qui n'ont pas d'informations sur les heures (*exemple : 1995-04-10 *)
+ * le format <i><POSIXct et POSIXit/i> : adapté pour les dates avec des heures (*exemple : 1995-04-10  22:10:00*)
+
+<br>Les variables dates sont stockées sous la forme de variables numériques correspondant au nombre de jour (Date) ou au nombre de secondes (POSIXct) depuis le 1er janvier 1970 `1970-01-01`. 
+</p>
+
+### Manipuler les dates
+
+> Les fonctions
+
+<br>La fonction **as.Date()** convertit une chaîne de caractères en date, si cette dernière est "déjà au bon format", à savoir : *%Y-%m-%d* (ou avec des '/'). Si ce n'est pas le cas, vous pouvez forcer grâce à l'argument *format* de la fonction, le format de cette dernière. 
+
+```{r as_date, echo=TRUE}
+# Quand le format de la string est standard
+date_anniv <- as.Date("2023-04-10")
+class(date_anniv)
+unclass(date_anniv)
+
+# Quand le format de la string n'est pas standard
+date_bday <- as.Date("10 Avril, 2023", format = ("%d %B, %Y"))
+date_bday
+```
+
+<br> Pour les formats 'habituels' : 
+
+ * %a : nom abrégé du jour.
+ * %A : nom complet du jour.
+ * %b : nom abrégé du mois.
+ * %B : nom complet du mois.
+ * %d : jour du mois.
+ * %H : heure de 00 à 23.
+ * %j : jour de l'année.
+ * %m : mois de 01 à 12.
+ * %M : minute de 00 à 59.
+ * %S : secondes.
+ * %U : numéro de la semaine (1 à 52).
+ * %w : numéro du jour de la semaine (dimanche = 0).
+ * %x : date, selon les paramètres du système.
+ * %X : temps selon les paramètres du système.
+ * %Y : année sur 4 chiffres.
+ * %T : équivalent à %H:%M:%S.
+
+Pour plus détails clic : [ici](https://egallic.fr/Enseignement/R/Book/donn%C3%A9es.html#dates-1)
+
+<br>Les fonctions **Sys.Date()** ou **Sys.time()** donnent la date du jour.
+
+<br>Un package **TIPTOP** pour la gestion des dates : **lubridate()**.
+
+## Fonctions{.tabset .tabset-fade .tabset-pills}
+
+### Généralités sur les fonctions
+
+<p style="text-align:justify;">
+
+**Les fonctions sont des objets !**
+<br>Pour **rappel** : une fonction est une série de commandes qui effectue des tâches prédéfinies. Comme c'est un objet, toutes les généralités sur les objets s'appliquent également (sensibilité à la casse, écrasement...).
+<br>En R, on peut utiliser les fonctions pré-créées dans les packages, ou créer ses propres fonctions. 
+<br>Pour définir / écrire / coder une fonction, on suit la syntaxe suivante :
+
+```{r fonction, echo=TRUE}
+# une fonction est composée de 4 éléments : un nom/function/args/expression
+
+ma_fonction <- function(args){
+        #expression(s)
+}
+# Pour appeler la fonction en question : 
+ma_fonction()
+
+```
+Quelques notions générales : 
+
+ * Il n'y a pas de limite au nombre d'arguments passés dans la fonction
+ * Un argument est spécifié par son nom
+ * Certains arguments ont une valeur renseignée par défaut qui est utilisée dans le cas où l'argument ne serait pas renseigné par l'utilisateur.
+ * Les objets créés au sein d'une fonction n'existent que localement (*portée de la fonction*)
+ * Vous pouvez stocker le résultat d'une fonction dans un objet
+
+</p>
+
+### Manipuler une fonction 
+
+```{r manip_fonction, echo=TRUE}
+stat_desc <- function (df){
+        resume <- summary(df) # summary est une fonction de R
+        return(resume) # optionnel
+}
+
+#resume # portée de la fct
+stat_desc( df = iris)
+sumup_iris <- stat_desc(iris) # appel sans nom
+
+
+# ressortir autant d'éléments qu'on veut dans une liste : 
+
+stat_desc2 <- function(x){
+        list(moyenne = mean(x), 
+             quantiles = quantile(x))
+}
+x <- iris$Sepal.Length
+stat_desc2(x)
+
+# Valeur par défaut :
+stat_desc3 <- function (df = iris){
+        resume <- summary(df) # summary est une fonction de R
+        return(resume) # optionnel
+}
+stat_desc3()
+stat_desc3(CO2) # C02 dataframe du package dataset
+
+```
+
+## Fonctions de R pour manipuler des objets 
+
+> Fonctions mathématiques usuelles : 
+
+ * `sqrt(x)` : racine carrée
+ * `exp(x)`  : exponentielle
+ * `log(x)`  : logarithme népérien
+ * `sin(x)`  : sinus
+ * `cos(x)`  : cosinus
+
+> Fonctions sur les nombres : 
+
+ * `floor(x)`    : parite entière
+ * `round(x, i)` : arrondi avec i chiffres derrière la virgule
+
+> Fonctions statistiques basiques : 
+
+ * `min(x)`    : plus petite valeur
+ * `max(x)`    : plus grande valeur
+ * `mean(x)`   : calcule la moyenne
+ * `sum(x)`    : calcule la somme
+ * `median(x)` : calcule la médianne
+ * `var(x)`    : calcule la variance
+ * `cov(x,y)`  : calcule la covariance
+ * `cor(x, y)` : calcule le coefficient de corr
+ * `sd(x)`     : calclue l'écart-type
+ 
+> Autres fonctions utiles : 
+
+ * `head(objet, i)`            : renvoie les i premières observations de l'objet
+ * `rowSums()`                 : somme par ligne
+ * `colSums()`                 : somme par colonne
+ * `rowMeans()`                : moyenne par ligne
+ * `colMeans()`                : moyenne par colonne
+ * `apply(objet, y, fonc)`     : renvoie le résultat de la fonction **fonc** appliquée à l'objet par ligne si y=1 ou colonne si y=2.
+ * `table(df$var)`             : renvoie les effectifs par modalités
+ * `prop.table(table(df$var))` : renvoie les fréquences (%) par modalités
+ * `summary(x)`                : renvoie un résumé de l'objet (mathématiques/types/longueur...) selon le type de l'objet passé en arg
+ * `str(x)`                    : décrit l'objet (tel que R le décrirait : type général + type de chaque variable)
+ 
+ 
+> Fonctions sur les chaînes de caractères : 
+ 
+ * `toupper(x)`    : convertit la char en MAJUSCULE
+ * `tolower(x)`    : convertit la char en minuscule
+ * `substr(x,i,j)` : extrait de x à partir de la position i et longueur de j
+ * `nchar(x)`      : nombre de caractères de la chaine x
+ 
+Associées au package `stringr`très utile pour la manipulation de textes
+
+ * `str_sub("emeline", 1, 3)`            : extrait de la chaine "emeline" les éléments à partir de la position 1, les 3 premiers
+ * `str_trim ("       hello world")`     : supprime les espaces en début de chaine
+ * `str_detect(chaine, "e")`             : détecte dans une chaine, les éléments avec "e"
+ * `str_extract(chaine, "emeline")`      : extrait de la chaine les éléments contenant emeline
+ * `str_replace_all(chaine, "em", "ma")` : remplace dans la chaine tous les éléments contenant "em" par "ma"
+
+ 
+# Programmer en R 
+
+## Les valeurs particulières {.tabset .tabset-fade .tabset-pills}
+
+### Valeurs vides
+
+L'objet **NULL** représente le vide en R (*l'inexistant*).
+<br>Il est donc de mode NULL et de longueur 0.
+
+### Valeurs manquantes 
+
+Les valeurs manquantes sont représentées par **NA** (pour *Not Available*).
+<br>La fonction `is.na()`retourne un objet bool : TRUE si l'élément est indeterminé 
+<br>La fonction `na.ommit()`supprime les valeurs manquantes d'un objet. A utiliser avec **parcimonie**.
+<br>Dans certaines fonctions (notamment de calcul), il est possible de préciser le paramètre **na.rm=TRUE** qui permet de ne pas prendre en compte les valeurs manquantes dans les calculs.
+<br>Une fonction bien utile pour de l'analyse descriptive, connaître le nombre d'effectifs par modalités et donc par NA si non ommis etc : `table(df$var, useNA = "always")` ou `table(df$var, useNA = "ifany")`
+
+
+### Valeurs infinies
+
+R n'oublie pas de prévoir les valeurs mathématiques spéciales telles que les infinis (et les formes indéterminées comme 0/0).
+
+ * **Inf** représente les valeurs infinies positives
+ * **-Inf** représente les valeurs infinies négatives
+ * **NaN** signifie *Not a Number* et représente une forme indeterminée
+ * Les fonctions `is.infinite()` vs `is.finite()` et `is.nan()` permettent de tester vos éléments d'un objet.
+
+
+## Les opérateurs
+
+Il existe différents types d'opérateurs en R : 
+
+ * Les opérateurs **arithmétiques** qui agissent sur des variables numériques ou booléennes uniquement : ^ (exponentielle)/* (mult)/+ - / %% (modulo) ...
+ * Les opérateurs de **comparaison** qui agissent sur n'importe quel type d'objet et retournent des valeurs logiques
+ * Les opérateurs **booléens** qui n'agissent que sur des objets de type booléen et ne retournent que des valeurs logiques.
+ * Les **autres** opérateurs qui correspondent à des symboles qui leurs sont réservés : ~ (régression linéaire) / <-- (affectations) / $ (indexation) / : (séquences) ....
+ 
+ > Les opérateurs de comparaisons : 
+ 
+ * ==    : égalité
+ * !=    : différence
+ * ">"     : **strictement** suppérieur à 
+ * "<"     : **strictement** inférieur à
+ * ">="    : supérieur ou égal à
+ * "<="    : inférieur ou égal à 
+ * %in%  : vérifie la contenance dans un objet (équivaut à == pour plusieurs modalités)
+ * !%in% : qui n'est pas dans un objet
+ 
+*Remarque : pour vérifier l'égalite, parfois il vaut mieux utiliser la fonction `all.equal(objet1, objet2)` ou (identical).*
+ 
+> Les opérateurs booléens :
+ 
+ * !  : négation (not)
+ * &  : *et logique* opère sur TOUS les éléments
+ * && : *et logique* opère uniquement sur le premier élément
+ * "|": *ou logique* opère sur TOUS les éléments
+ * || : *ou logique* opère uniquement sur le premier élément
+ * Xor(,) ou exclusig
+ 
+## Les conditions 
+
+On peut soumettre l'éxecution de nos codes en R à certaines conditions. La forme la plus simple s'écrit : 
+
+```{r condition, echo=TRUE}
+# if(condition){
+#         #expressions
+# } 
+m <- 1
+if(m== 1) print("Jacques, je vole")
+
+# puis si plusieurs cas : 
+# if(condition){
+#         #expressions
+# }else{
+#         #autres expressions
+# }
+
+# Exemple : 
+E <- TRUE
+x <- 4
+
+if(E==TRUE){
+        x <- x +10
+        y <- 2
+}else{
+        x <- x -10
+        y  <- -2
+}
+# Exemple 2 :
+# if(condition){
+#         expressions
+# }else if (condition2){
+#         expressions
+# }else{
+#         expressions
+# }
+
+```
+**Remarque ** : Attention, lorsque l’on fait des regroupements et qu’on utilise la structure if et else, il est nécessaire d’écrire le mot else sur la même ligne que l'accolade fermante du if précédent.
+<br> 
+Vous trouverez également la fonction `ifelse()` dans les codes, dont la syntaxe est très simplifiée : 
+```{r ifelse, echo=TRUE}
+# ifelse(condition, si TRUE, si FALSE)
+a <- 10 
+ifelse (a == 10, "coucou Émeline", "ce n'est pas ton anniversaire") 
+```
+
+<br>
+R évolue constamment, et d'autres fonctions pour les conditions voient le jour et sont parfois plus efficaces : 
+ 
+ * les fonctions et instructions : `switch()`, `repeat...break`, `next...break` etc. (*cf. pour plus de détails ci-contre* [ici](https://egallic.fr/Enseignement/R/Book/boucles.html#boucles_boucles_conditions))
+ * une de celles que j'utilise : `case_when`
+
+## Les boucles 
+
+Il existe 2 sortes principales de boucles dans R. Celles pour lesquelles les itérations continuent tant qu'une condition n'est pas validée et celles pour lesquelles le nombre d'itération est défini au moment de lancer la boucle.
+
+> Les boucles avec `while()` 
+
+Si vous voulez répéter une instruction tant que la condition n'est pas satisfaite, c'est cette boucle qu'il faudra utiliser.
+
+```{r while, echo=TRUE}
+# while(condition){
+#         #expressions
+# } 
+
+# vous pouvez ou non utiliser les {}. Il est préférable de les mettre pour la lisibilité du code et si jamais il y a plusieurs instructions à lancer.
+```
+> Les boucles avec `for()`
+
+Ces boucles sont utiles uniquement lorsque l'on connaît en avance, le nombre d'itération à tester. La syntaxe est un peu différente : 
+
+```{r for, echo=TRUE}
+# for(variable in vector){
+#         #expressions
+# } 
+
+# variable = nom d'une variable locale à la fonction for() >> le fameux "i"
+# vector = un vecteur à n éléments définissant les variables que prendra la variable
+
+for(chiffre in c (10, 04, 17, 11)){
+  print(chiffre)
+} 
+```
+<p style="text-align:justify;">
+Pour info : on peut utiliser la fonction `for()` pour remplir les éléments d'un objet. Malheureusement cela est **couteux pour R** qui doit trouver l'objet de destination en mémoire, en créer un nouveau qui pourra contenir plus de données, copier les anciennes données pour les insérer dans le nouvel objet, puis supprimer l'ancien objet. En code, ça donne ça : 
+</p>
+```{r for bp, echo=TRUE}
+resultat <- NULL
+for(i in seq_len(3)) {
+  resultat[i] <- i
+}
+resultat
+
+# Une meilleure solution serait : 
+
+resultat <- rep(NA, 3)
+for(i in seq_len(3)) {
+  resultat[i] <- i
+}
+resultat
+
+# créer l'objet avec des valeurs manquantes "NA", pour ne pas avoir à ré allouer de la mémoire à chaque itération.
+```
+
+
+## Debugg & break
+
+R dispose d'outils de débuggage : 
+
+ * la fonction `traceback()` renvoie les différentes instructions qui ont été exécutées jusqu'à l'erreur.
+ * la fonction `debug()` permet de suivre pas à pas l'exécution d'une fonction. **Ne pas oublier de fermer le debuggage à la fin : soit par la fct `undebug()` soit au clic**.
+ * avec un **super package** : `reprex`. Si vous n’êtes pas patient(e), une fois que vous êtes tombé(e) sur une erreur dans votre code, votre première intention pourrait être de vous diriger vers stackoverflow ou sur le forum RStudio. Bien que cela puisse se présenter comme une solution facile à utiliser, il faut être en mesure de reproduire le scénario complet qui produit l’erreur.  Lors de l’appel de reprex, le code est exécuté dans un nouvel environnement. La création de toutes les variables utiles à l’exécution du code est nécessaire. L’appel de la fonction reprex génère un markdown qui est, selon le choix effectué lors de l’appel à la fonction, compatible avec l’un de ces sites: stackoverflow, github, etc. **Lors de l’installation de reprex, un addin est ajouté à votre IDE RStudio**.
+ 
+ > Debugg de R : 
+ 
+```{r verif_positif, echo=TRUE}
+ verifier_positif <- function(n) {
+  if (n < 0) {
+    stop("n doit être positif")
+  }
+}
+
+incrementer_positif <- function(n){
+  verifier_positif(n)
+  n + 1
+}
+
+# incrementer_positif(-5)
+
+# le résultat de cette manière sera l'équivalent de `traceback()`
+```
+
+> Break et next : 
+
+L'instruction **break** permet de sortir de la boucle. Mais, parfois, selon la boucle comme les **repeat**, le break est indispensable pour en sortir et l'arrêter.
+
+# Accèder aux données 
+
+Il existe plusieurs moyens d'avoir des données dans R à manipuler.
+
+## Quelques généralités 
+
+ * Connaître les datasets déjà chargés par défaut dans R : `data()`
+ * Voir des données : `View()` (en clic ça marche aussi)
+
+## Générer ses propres données
+
+La première façon, c'est de générer ses propres données. Pour cela, il existe quelques fonctions : 
+
+ * Pour générer des séquences **":"** : 1:5 va créer un vecteur de 5 éléments comme suit > c(1, 2, 3, 4, 5)
+ * La fonction `seq()` :
+ 
+        *  *seq(n)* donne un vecteur de tous les entiers de 1 à n 
+        *  *seq(i, n)* donne un vecteur de tous les entiers de i à n
+        *  *seq(i, n, f)* donne un vecteur de tous les entiers de i à n, avec un pas de f
+ * La fonction `rep()` :
+ 
+        *  *rep(v1, times=4)* donne un vecteur de taille 4*length(v1) avec 4 fois le vecteur v1 mis bout à bout
+        *  *rep(v1, each=4)*  donne un vecteur de taille 4*length(v1) avec 4 fois la 1ère valeur de v1 puis 4 fois la 2ème valeur, etc
+        *  *rep(v1,v)* soit v un vecteur numérique de même taille que v1, ça répète chaque élément de v1 autant de fois que le ième élément de v.
+ * Les échantillons aléatoires selon une loi :
+ 
+        *  *rnorm(n, mean, sd)* donne un vecteur de n valeurs, tirées d'une distribution gaussienne de moyenne "mean" et d'écart-type "sd)
+        *  *runif(n, min, max)* donne un vecteur de n valeurs, issues d'une distribution uniforme entre le min et le max
+        
+ * Les échantillons aléatoires à partir d'un vecteur : 
+ 
+        *  *sample(vect, size, replace=TRUE)* donne un échantillon de "size" valeurs prises dans vect avec remise (si T)
+        *  *sample(seq(2,4), size, prob = c(0.1, 0.2, 0.3, 0.4), replace=TRUE)* donne un échantillon de "size" valeurs prises parmi le vecteur donné, chaque valeur étant choisie avec une probabilité proportionnelle aux valeurs données dans l'arg prob
+        *  *set.seed(n)* fixera la graine du tirage à n.
+        
+## Fichiers RDS
+
+> Lecture 
+
+Pour lire un fichier .RDS (extension habituelle de R), on peut utiliser : `readRDS(file = "lefichierRDSàouvrir.RDS")`
+
+> Ecriture
+
+Pour écrire une fichier .RDS (comprendre sauvegarder ce fichier), on peut utilser son pendant : `saveRDS(df, file ="lecheminduRDS.RDS")`
+
+## Fichiers texte 
+
+> Lecture 
+
+Pour lire un fichier texte, on peut avoir besoin de changer le répertoire courant de R (par le répertoire ou se trouve le fichier (changer/préciser)).
+
+```{r fic_txt, echo=TRUE}
+# mon_fichier <- read.table("le_fichier.txt", header = T)
+```
+
+Grâce à l'arg **header**, la première ligne du fichier est lue comme une en-tête.
+
+> Ecriture
+
+En utilisant la fonction `write.table(data, file="nom_fichier_a_ecrire.txt")`.
+<br>Comme pour la lecture, si vous laissez cela tel quel, ça écrira le fichier .txt dans le répertoire courant. Vous pouvez changer/préciser un autre chemin.
+
+## Fichiers csv 
+
+> Lecture 
+
+Pour lire un fichier excel (.csv/ .xls / .xlsx ...), vous pouvez utiliser la fonction : `read.csv("fichier_alire.csv", heder = T)`. Notez que vous pouvez changer .csv par .xlsx (et même .xlsx2 plus puissant).
+
+> Ecriture 
+
+En utilisant la fonction `write.csv(data, file="nom_fichier_aecrire.csv", row.names=FALSE)`.Ici, comme précédemment, vous pouvez modifier le .csv par d'autres extensions excel. L'argument *row.names = FALSE* permet de ne pas écrire la première colonne lue dans R qui ne fait que compter le nombre de lignes.
+<br>Notez également, qu'il existe tout un tas d'arguments différents permettant de choisir la manière dont votre fichier sera lu et/ou écrit.
+
+
+> D'autres moyens 
+
+Le package `XLConnect` permet également d'écrire et manipuler des fichiers excel depuis R.
+ 
+ * Pour charger ou créer un classeur excel (ici c'est l'option "create=TRUE" qui permettra de créer un nouveau classeur) : `crea <- loadWorkbook("fichier.xls", create=TRUE)`
+ * Pour créer une feuille dans le classeur "crea" : `sheet <- createSheet(crea, "nomdelafeuille")`
+ * Pour écrire dans une feuille créée ou chargée à partir d'une cellule précise (m,n) : `writeWorksheet(crea, df, sheet= "nomdelafeuille", startCol=n, startRow=m, header=TRUE)`
+ * Sauvegarder un classeur créé : `saveWorkoob(crea)`
+ * Lire une table d'une feuille excel précise : `tab <- readWorksheet(crea, sheet = "nomdelafeuille")`
+## Fichers des logiciels Statistiques 
+
+## Les SGBD 
+
+<br>Pour accéder à des données provenant de logiciels de statistiques (SPSS, SAS, STATA, ...), il existe des packages comme `foreign`, `sas7bdat`...
+
+> Pour se connecter à une SGBD :
+
+Le package INDISPENSABLE est `RODBC`. Il permet de se connecter à toute base de données configurée via ODBC. Il permet de générer des bdd sur différents systèmes de gestion de bdd (même Microsoft Acces, MySQL, PostgreSQL, SQL Server, Oracle, SQLite). En revanche, avant de pouvoir interroger quelques bdd qui soit, il faudra créer une association enctre cette bdd et un pilote ODBC adapté. : `odbcDriverConnect()`
+
+```{r RODBC, echo=TRUE}
+# Charger la lib necessaire 
+# library(RODBC)
+
+# Se connectet (pls cmd existent pour se co à une bdd (cf. l'aide du package))
+# connect <- odbcConnect(dsn="Nom de la source de données")
+
+#Fermer toutes les connections ODB en cours :
+# odbcCloseAll()
+
+# Structure des colonnes d'une table 
+# sqlColumns(connect, sqtable = "ma_table")
+
+# Lister les fichiers contenus dans une bdd. L'arg errors=TRUE indique à R qu'il doit s'arreter et afficher un msg en cas d'erreur. Si errors=FALSE, R n'affichera que -1 en cas d'erreur : 
+# sqlTables(connect, errors= TRUE)
+
+# Lire une table 
+# sqlFetch(connect, sqtable= "ma_table", colnames=T)
+
+# Requêter :
+# sqlQuery(connect, "select * from ma_table where Condition")
+
+# Enregistrer un df dans la bdd 
+# sqlSave(connect, df, rownames=F, tablename= "nom_dela_table", append=F)
+
+# Supprimer une table de la bdd 
+# sqlDrop(connect, "table_asupp")
+
+```
+
+<br>D'autres packages spécifiques utilisent les drivers des bases de données open source. Voici quelques exemples : 
+ 
+ * MySQL : package `RMySQL`
+ * PostreSQL : package `RPostgreSQL`
+ * Mongo : package `Rmongo`
+
+# Le coin BONUS 
+
+Ce cours est écrit et présenté en R. 
+
+## Les raccourcis 
+
+## Dplyr & data.table 
+
+## Rmarkdown 
+
+## RShiny 
+
+## Package de modélisation 
+
+## Création de package

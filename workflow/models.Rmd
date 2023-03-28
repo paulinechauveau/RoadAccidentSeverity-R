@@ -1,0 +1,281 @@
+---
+title: "RoadAccidentSeverity"
+author: "Alexandre Robin"
+date: "`r Sys.Date()`"
+output: rmdformats::material
+---
+
+```{r setup, echo=False, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Outils {.tabset .tabset-fade .tabset-pills}
+
+## Librairies
+```{r}
+library(caret)
+library(corrplot)
+library(dplyr)
+library(kableExtra)
+library(knitr)
+library(ggcorrplot)
+library(ggplot2)
+library(knitr)
+library(magrittr)
+library(naniar)
+library(rmdformats)
+library(rpart)
+library(sf)
+library(tidyr)
+library(tidyverse)
+library(visdat)
+```
+
+## Rendu
+```{r}
+render_df <- function(df) {
+  #' Formats dataframe for knitting
+  #' 
+  #' @param df A data.frame
+  
+  df %>% 
+    kable() %>%
+    kable_styling(
+      full_width = TRUE,
+      font_size = 10
+    ) %>% 
+    scroll_box(width = "100%")
+}
+```
+
+
+## Preprocessing
+```{r}
+set_numericals <- function(data, list_var){
+  require(dplyr, install.packages('dplyr'))
+  list_var <- unlist(list_var)
+  data <- data %>% mutate_at(vars(matches(list_var)), as.integer)
+  return(data)
+}
+
+set_factors <- function(data, list_var){
+  require(dplyr, install.packages('dplyr'))
+  list_var <- unlist(list_var)
+  data <- data %>% mutate_at(vars(matches(list_var)), as.factor)
+  return(data)
+}
+
+set_strings <- function(data, list_var){
+  require(dplyr, install.packages('dplyr'))
+  list_var <- unlist(list_var)
+  data <- data %>% mutate_at(vars(matches(list_var)), as.character)
+  return(data)
+}
+
+set_data <- function(data, var_numericals, var_factors, var_strings){
+  if(length(var_numericals)!=0)
+    data <- set_numericals(data, var_numericals)
+  if(length(var_factors)!=0)
+    data <- set_factors(data, var_factors)
+  if(length(var_strings)!=0)
+    data <- set_strings(data, var_strings)
+  return(data)
+}
+
+del_vars <- function(data, vars){
+  vars <- unlist(vars)
+  data <- data %>% select(-vars)
+  return(data)
+}
+
+get_missing <- function(df){ 
+  variables <- names(df) 
+  dtypes <- sapply(df, class)
+  count <- sapply(df, length) 
+  unique <- sapply(df, function(x) length(unique(na.omit(x)))) 
+  missing <- sapply(df, function(x) sum(is.na(x))) 
+  missing_prop <- round(missing/count*100, 2) 
+  output <- data.frame(variable=variables, 
+                       dtype=dtypes, 
+                       count=count, 
+                       unique=unique, 
+                       missing=missing, 
+                       missing_prop=missing_prop) 
+  return(output) 
+}
+
+get_dtypes <- function(df){
+  variables <- names(df) 
+  dtypes <- sapply(df, class)
+  return(data.frame(variable=variables, dtype=dtypes)) 
+}
+
+set_dtypes_df <- function(df){
+  rownames(df) <- df$variable
+  df <- df %>% select(-variable)
+  df <- df %>% t()
+  return(df)
+}
+```
+
+## EDA
+```{r}
+most_common <- function(vect){
+  return(names(sort(table(vect), decreasing=T)[1]))
+}
+```
+
+
+
+# MODELS
+
+## Acquisition
+
+```{r, eval=FALSE}
+train_dtypes <- read.csv2(
+  'train_dtypes.csv',
+  header=TRUE,
+  sep=';'
+)
+original_train <- read.csv2(
+  'train.csv',
+  header=TRUE,
+  sep=';',
+  colClasses=set_dtypes_df(train_dtypes)
+)
+
+test_dtypes <- read.csv2(
+  'test_dtypes.csv',
+  header=TRUE,
+  sep=';'
+)
+original_test <- read.csv2(
+  'test.csv',
+  header=TRUE,
+  sep=';',
+  colClasses=set_dtypes_df(test_dtypes)
+)
+
+train <- original_train
+test <- original_test
+```
+
+
+
+
+```{r}
+# Évaluer les performances du modèle en utilisant la validation croisée k-fold (k=10)
+
+
+# Afficher la matrice de confusion pour l'ensemble de test
+
+```
+
+
+
+
+```{r}
+fitControl <- trainControl(method = "repeatedcv",
+                           number = 5,
+                           repeats = 5)
+```
+
+
+## Tree
+```{r}
+set.seed(2124)
+
+tree <- caret::train(grav ~ ., data = train_prep2,
+                 method = "rpart",
+                 #trControl = fitControl,
+                 )
+tree
+```
+
+```{r}
+varImp(tree)
+```
+
+```{r}
+confusionMatrix(tree.predict(test_prep2), test_prep2$grav)
+```
+
+
+## Random forest
+
+## Stochastic gradient boosting
+
+```{r}
+set.seed(2124)
+
+gbm <- caret::train(grav ~ ., data = train_prep2,
+                 method = "gbm",
+                 #trControl = fitControl,
+                 )
+gbm
+```
+
+```{r}
+varImp(gbm)
+```
+
+
+```{r}
+# plot(gbmFit1)
+```
+
+
+```{r}
+
+# Diviser les données en ensemble d'entraînement et de test (70% / 30%)
+set.seed(2023)
+trainIndex <- caret::createDataPartition(
+  data$grav, 
+  p = 0.7, 
+  list = FALSE, 
+  times = 1)
+```
+
+
+```{r}
+
+train <- iris[trainIndex,]
+test <- iris[-trainIndex,]
+
+# Définir le modèle d'arbre de décision
+model <- rpart(Species ~ ., data = train)
+
+# Prédire la classe de l'ensemble de test
+pred <- predict(model, newdata = test, type = "class")
+
+# Évaluer les performances du modèle en utilisant la validation croisée k-fold (k=10)
+set.seed(123)
+k <- 10
+folds <- createFolds(train$Species, k = k, 
+                     list = TRUE, 
+                     returnTrain = FALSE)
+cv_results <- data.frame(accuracy = numeric(k))
+for (i in 1:k) {
+  # Diviser les données en ensemble d'entraînement et de validation
+  train_fold <- train[-folds[[i]], ]
+  validation_fold <- train[folds[[i]], ]
+  
+  # Former le modèle sur l'ensemble d'entraînement
+  model_fold <- rpart(Species ~ ., data = train_fold)
+  
+  # Prédire la classe de l'ensemble de validation
+  pred_fold <- predict(model_fold, newdata = validation_fold, type = "class")
+  
+  # Évaluer les performances sur l'ensemble de validation
+  cv_results[i, "accuracy"] <- sum(pred_fold == validation_fold$Species) / nrow(validation_fold)
+}
+
+# Afficher les résultats de la validation croisée
+print(cv_results)
+cat("Accuracy (mean +/- sd): ", mean(cv_results$accuracy), " +/- ", sd(cv_results$accuracy), "\n")
+
+# Afficher la matrice de confusion pour l'ensemble de test
+confusionMatrix(pred, test$Species)
+
+```
+

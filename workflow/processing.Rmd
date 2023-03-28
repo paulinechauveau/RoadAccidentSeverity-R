@@ -1,0 +1,251 @@
+---
+title: "RoadAccidentSeverity"
+author: "Alexandre Robin"
+date: "`r Sys.Date()`"
+output: rmdformats::material
+---
+
+```{r setup, echo=False, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Outils {.tabset .tabset-fade .tabset-pills}
+
+## Librairies
+```{r}
+library(caret)
+library(corrplot)
+library(dplyr)
+library(kableExtra)
+library(knitr)
+library(ggcorrplot)
+library(ggplot2)
+library(knitr)
+library(magrittr)
+library(naniar)
+library(rmdformats)
+library(rpart)
+library(sf)
+library(tidyr)
+library(tidyverse)
+library(visdat)
+```
+
+## Rendu
+```{r}
+render_df <- function(df) {
+  #' Formats dataframe for knitting
+  #' 
+  #' @param df A data.frame
+  
+  df %>% 
+    kable() %>%
+    kable_styling(
+      full_width = TRUE,
+      font_size = 10
+    ) %>% 
+    scroll_box(width = "100%")
+}
+```
+
+
+## Preprocessing
+```{r}
+set_numericals <- function(data, list_var){
+  require(dplyr, install.packages('dplyr'))
+  list_var <- unlist(list_var)
+  data <- data %>% mutate_at(vars(matches(list_var)), as.integer)
+  return(data)
+}
+
+set_factors <- function(data, list_var){
+  require(dplyr, install.packages('dplyr'))
+  list_var <- unlist(list_var)
+  data <- data %>% mutate_at(vars(matches(list_var)), as.factor)
+  return(data)
+}
+
+set_strings <- function(data, list_var){
+  require(dplyr, install.packages('dplyr'))
+  list_var <- unlist(list_var)
+  data <- data %>% mutate_at(vars(matches(list_var)), as.character)
+  return(data)
+}
+
+set_data <- function(data, var_numericals, var_factors, var_strings){
+  if(length(var_numericals)!=0)
+    data <- set_numericals(data, var_numericals)
+  if(length(var_factors)!=0)
+    data <- set_factors(data, var_factors)
+  if(length(var_strings)!=0)
+    data <- set_strings(data, var_strings)
+  return(data)
+}
+
+del_vars <- function(data, vars){
+  vars <- unlist(vars)
+  data <- data %>% select(-vars)
+  return(data)
+}
+
+get_missing <- function(df){ 
+  variables <- names(df) 
+  dtypes <- sapply(df, class)
+  count <- sapply(df, length) 
+  unique <- sapply(df, function(x) length(unique(na.omit(x)))) 
+  missing <- sapply(df, function(x) sum(is.na(x))) 
+  missing_prop <- round(missing/count*100, 2) 
+  output <- data.frame(variable=variables, 
+                       dtype=dtypes, 
+                       count=count, 
+                       unique=unique, 
+                       missing=missing, 
+                       missing_prop=missing_prop) 
+  return(output) 
+}
+
+get_dtypes <- function(df){
+  variables <- names(df) 
+  dtypes <- sapply(df, class)
+  return(data.frame(variable=variables, dtype=dtypes)) 
+}
+
+set_dtypes_df <- function(df){
+  rownames(df) <- df$variable
+  df <- df %>% select(-variable)
+  df <- df %>% t()
+  return(df)
+}
+```
+
+## EDA
+```{r}
+most_common <- function(vect){
+  return(names(sort(table(vect), decreasing=T)[1]))
+}
+```
+
+
+
+# MODELS
+
+```{r, eval=FALSE}
+data_dtypes <- read.csv2(
+  'preprocessed_data_dtypes.csv',
+  header=TRUE,
+  sep=';'
+)
+original_data <- read.csv2(
+  'preprocessed_data.csv',
+  header=TRUE,
+  sep=';',
+  colClasses=set_dtypes_df(data_dtypes)
+)
+
+data <- original_data
+```
+
+## Split 
+
+```{r}
+train <- data %>% dplyr::sample_frac(0.70)
+test  <- dplyr::anti_join(data, train, by = 'id_usager')
+
+train <- subset(train, 
+                select = !(names(train) %in% c('Num_Acc', 'id_vehicule', 'id_usager')))
+test <- subset(test, 
+               select = !(names(test) %in% c('Num_Acc', 'id_vehicule', 'id_usager')))
+```
+
+```{r}
+num_vars <- colnames(select_if(train, is.numeric))
+cat_vars <- colnames(select_if(train, is.factor))
+cat_vars <- cat_vars[cat_vars != "grav"]
+```
+
+## Imputation
+
+```{r}
+train <- train %>% 
+  mutate_if(is.numeric, ~replace(., is.na(.), median(., na.rm = TRUE))) %>%
+  mutate_if(is.factor, ~replace(., is.na(.), most_common(.)))
+```
+
+```{r}
+test <- test %>% 
+  mutate_if(is.numeric, ~replace(., is.na(.), median(., na.rm = TRUE))) %>%
+  mutate_if(is.factor, ~replace(., is.na(.), most_common(.)))
+```
+
+## Near Zero-Variance
+
+On vérifie que les variables explicatives sont distribuées dans plusieurs modalités. Dans le cas contraire certains modèles (sauf les modèles à base d'arbres) peuvent être instables.
+
+```{r}
+nzv <- nearZeroVar(train, saveMetrics= TRUE)
+nzv %>% arrange(desc(freqRatio))
+```
+
+
+## Correlation
+
+**Variables numériques**
+```{r}
+correlation <- cor(train[,num_vars], use = "complete.obs")
+correlation %>% data.frame() 
+corrplot(correlation, method ="ellipse", type="upper", order="AOE", tl.col="black", tl.srt=50, tl.cex = 0.6)
+```
+
+> **Pas de fortes correlations entre les variables.**
+
+\n
+
+**Variables catégorielles**
+```{r}
+model.matrix(~0+., data=train[,cat_vars]) %>% 
+  cor(use="pairwise.complete.obs") %>% 
+  ggcorrplot(show.diag=FALSE, type="lower", lab=FALSE, lab_size=0)
+```
+
+> **Dans l'ensemble les variables sont pas très corrélées.**
+
+## Scaling
+
+```{r}
+center_scale <- caret::preProcess(train, method = c("center", "scale"))
+center_scale
+train_scaled <- predict(center_scale, train)
+test_scaled <- predict(center_scale, test)
+```
+
+> **Numerical variables are centered and scaled.**
+
+## Dummy var
+
+```{r}
+dummies <- dummyVars(grav ~ ., data = train_scaled)
+
+train_scaled_dum <- predict(dummies, newdata = train_scaled)
+train_scaled_dum <- data.frame(train_scaled_dum)
+
+test_scaled_dum <- predict(dummies, newdata = test_scaled)
+test_scaled_dum <- data.frame(test_scaled_dum)
+
+train_scaled_dum$grav <- train$grav
+```
+
+```{r}
+str(train_scaled_dum)
+```
+
+## Saving
+```{r}
+train_dtypes <- train_scaled_dum %>% get_dtypes()
+write.csv2(train_scaled_dum, 'train.csv', row.names=FALSE)
+write.csv2(train_dtypes, 'train_dtypes.csv', row.names=FALSE)
+
+test_dtypes <- test_scaled_dum %>% get_dtypes()
+write.csv2(test_scaled_dum, 'test.csv', row.names=FALSE)
+write.csv2(test_dtypes, 'test_dtypes.csv', row.names=FALSE)
+```
+

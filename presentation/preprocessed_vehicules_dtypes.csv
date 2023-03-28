@@ -1,0 +1,6 @@
+"variable";"dtype"
+"Num_Acc";"character"
+"id_vehicule";"character"
+"catveh";"factor"
+"obstacle";"factor"
+"choc_gr";"factor"
